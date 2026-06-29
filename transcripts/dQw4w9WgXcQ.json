@@ -1,0 +1,13 @@
+{
+  "transcript_text": "",
+  "segments": [],
+  "language_detected": "hi",
+  "language_probability": 1,
+  "word_count": 0,
+  "method": "faster-whisper (large-v3)",
+  "processing_seconds": 149.1,
+  "video_id": "dQw4w9WgXcQ",
+  "video_title": "Rick Astley - Never Gonna Give You Up (Official Video) (4K Remaster)",
+  "channel": "Rick Astley",
+  "duration_seconds": 213
+}

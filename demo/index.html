@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DeoDap — YouTube → Shopify Blog Automation (Live Demo)</title>
+<style>
+  :root{
+    --teal:#0d9488; --teal-dark:#0f766e; --teal-light:#ccfbf1;
+    --navy:#0d1b2a; --navy-2:#1b263b;
+    --bg:#f1f5f9; --card:#ffffff; --line:#e2e8f0;
+    --txt:#0f172a; --muted:#64748b; --muted-2:#94a3b8;
+    --green:#16a34a; --green-bg:#dcfce7;
+    --amber:#d97706; --amber-bg:#fef3c7;
+    --red:#dc2626; --red-bg:#fee2e2;
+    --blue:#2563eb; --blue-bg:#dbeafe;
+    --radius:14px; --shadow:0 1px 3px rgba(0,0,0,.08),0 8px 24px rgba(15,23,42,.06);
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{font-family:var(--sans);background:var(--bg);color:var(--txt);line-height:1.55;-webkit-font-smoothing:antialiased}
+  a{color:var(--teal-dark)}
+  button{font-family:inherit}
+
+  /* ---------- Header ---------- */
+  header.app{background:linear-gradient(110deg,var(--navy),var(--navy-2));color:#fff;padding:14px 20px;position:sticky;top:0;z-index:50;box-shadow:0 2px 12px rgba(0,0,0,.18)}
+  .hdr-wrap{max-width:1280px;margin:0 auto;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .logo{font-weight:800;font-size:22px;letter-spacing:.5px;color:var(--teal);display:flex;align-items:center;gap:8px}
+  .logo .dot{width:10px;height:10px;border-radius:50%;background:var(--teal);box-shadow:0 0 0 4px rgba(13,148,136,.25)}
+  .hdr-sub{color:#cbd5e1;font-size:13px;font-weight:500}
+  .hdr-spacer{flex:1}
+  .pill{font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;background:rgba(13,148,136,.2);color:var(--teal-light);border:1px solid rgba(13,148,136,.4)}
+  .api-toggle{display:flex;align-items:center;gap:8px;font-size:12px;color:#cbd5e1}
+
+  /* ---------- Layout ---------- */
+  .container{max-width:1280px;margin:0 auto;padding:20px;display:grid;grid-template-columns:minmax(0,420px) minmax(0,1fr);gap:20px;align-items:start}
+  @media(max-width:920px){.container{grid-template-columns:1fr}}
+
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+  .panel-head{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;background:#fbfdfe}
+  .panel-head h2{margin:0;font-size:15px;font-weight:700}
+  .panel-head .ico{width:26px;height:26px;border-radius:8px;background:var(--teal-light);color:var(--teal-dark);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800}
+  .panel-body{padding:18px}
+
+  .field{margin-bottom:16px}
+  .field label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px}
+  .field input[type=text],.field input[type=password],.field textarea{
+    width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:10px;font-size:14px;font-family:inherit;outline:none;transition:.15s;background:#fff;color:var(--txt)}
+  .field input:focus,.field textarea:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,.15)}
+  .field textarea{resize:vertical;min-height:150px;line-height:1.6}
+  .hint{font-size:11.5px;color:var(--muted-2);margin-top:5px}
+  .row{display:flex;gap:8px;flex-wrap:wrap}
+  .row > *{flex:1;min-width:0}
+
+  /* ---------- Buttons ---------- */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 18px;border-radius:10px;border:none;font-size:14px;font-weight:700;cursor:pointer;transition:.15s;white-space:nowrap}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .btn-primary{background:var(--teal);color:#fff}
+  .btn-primary:hover:not(:disabled){background:var(--teal-dark)}
+  .btn-dark{background:var(--navy);color:#fff}
+  .btn-dark:hover:not(:disabled){background:var(--navy-2)}
+  .btn-ghost{background:#fff;color:var(--txt);border:1px solid var(--line)}
+  .btn-ghost:hover:not(:disabled){background:#f8fafc;border-color:var(--muted-2)}
+  .btn-block{width:100%}
+  .btn-sm{padding:7px 12px;font-size:12.5px;border-radius:8px}
+
+  /* ---------- Video embed ---------- */
+  .video-frame{position:relative;width:100%;aspect-ratio:16/9;border-radius:10px;overflow:hidden;background:#000;border:1px solid var(--line)}
+  .video-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+  .video-empty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted-2);font-size:13px;flex-direction:column;gap:8px;background:repeating-linear-gradient(45deg,#0f172a,#0f172a 12px,#111c30 12px,#111c30 24px)}
+
+  /* ---------- Pipeline steps ---------- */
+  .pipeline{display:flex;flex-direction:column;gap:2px}
+  .pstep{display:flex;align-items:center;gap:12px;padding:9px 10px;border-radius:9px;transition:.2s}
+  .pstep .num{flex:none;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;background:#e2e8f0;color:var(--muted)}
+  .pstep .lbl{font-size:13.5px;color:var(--muted);font-weight:600}
+  .pstep .stat{margin-left:auto;font-size:11px;font-weight:700;color:var(--muted-2)}
+  .pstep.active{background:var(--blue-bg)}
+  .pstep.active .num{background:var(--blue);color:#fff;animation:pulse 1s infinite}
+  .pstep.active .lbl{color:var(--txt)}
+  .pstep.active .stat{color:var(--blue)}
+  .pstep.done .num{background:var(--green);color:#fff}
+  .pstep.done .lbl{color:var(--txt)}
+  .pstep.done .stat{color:var(--green)}
+  .pstep.err .num{background:var(--red);color:#fff}
+  .pstep.err .lbl,.pstep.err .stat{color:var(--red)}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(37,99,235,.45)}50%{box-shadow:0 0 0 6px rgba(37,99,235,0)}}
+
+  /* ---------- Output tabs ---------- */
+  .tabs{display:flex;gap:4px;padding:10px 14px 0;border-bottom:1px solid var(--line);background:#fbfdfe;overflow-x:auto;scrollbar-width:thin}
+  .tab{padding:9px 14px;border:none;background:transparent;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;transition:.15s}
+  .tab:hover{color:var(--txt)}
+  .tab.active{color:var(--teal-dark);border-bottom-color:var(--teal)}
+  .tab .badge{display:inline-block;margin-left:6px;font-size:10px;background:var(--teal);color:#fff;border-radius:10px;padding:1px 7px;vertical-align:middle}
+
+  .tab-pane{display:none;padding:18px;animation:fade .3s}
+  .tab-pane.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+  .empty-state{text-align:center;padding:56px 20px;color:var(--muted-2)}
+  .empty-state .big{font-size:42px;margin-bottom:10px}
+  .empty-state h3{margin:0 0 6px;color:var(--muted);font-size:16px}
+
+  /* ---------- Analysis cards ---------- */
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:560px){.grid2{grid-template-columns:1fr}}
+  .acard{border:1px solid var(--line);border-radius:11px;padding:13px 14px;background:#fff}
+  .acard .k{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted-2);margin-bottom:6px}
+  .acard .v{font-size:14px;color:var(--txt)}
+  .badge-lvl{display:inline-block;padding:3px 11px;border-radius:20px;font-size:12px;font-weight:800}
+  .lvl-high{background:var(--green-bg);color:var(--green)}
+  .lvl-medium{background:var(--amber-bg);color:var(--amber)}
+  .lvl-low{background:var(--red-bg);color:var(--red)}
+  .lvl-info{background:var(--blue-bg);color:var(--blue)}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{background:var(--teal-light);color:var(--teal-dark);font-size:12px;font-weight:600;padding:4px 11px;border-radius:20px;border:1px solid #99f6e4}
+  .chip.alt{background:#eef2ff;color:#4338ca;border-color:#c7d2fe}
+  ul.pts{margin:6px 0 0;padding-left:18px}
+  ul.pts li{font-size:13.5px;margin-bottom:5px}
+
+  /* ---------- Blog preview ---------- */
+  .blog-toolbar{display:flex;gap:8px;justify-content:flex-end;margin-bottom:12px;flex-wrap:wrap}
+  .blog{border:1px solid var(--line);border-radius:11px;padding:24px;background:#fff;max-height:620px;overflow:auto}
+  .blog h1{font-size:26px;margin:0 0 14px;line-height:1.25;color:var(--navy)}
+  .blog h2{font-size:19px;margin:24px 0 8px;color:var(--navy-2);border-left:4px solid var(--teal);padding-left:10px}
+  .blog h3{font-size:16px;margin:14px 0 6px}
+  .blog p{margin:0 0 12px;color:#334155;font-size:14.5px}
+  .blog a{color:var(--teal-dark);font-weight:600}
+  .blog dl{margin:8px 0}
+  .blog dt{font-weight:700;margin-top:12px;color:var(--navy-2)}
+  .blog dd{margin:4px 0 0;color:#475569}
+  .blog .product-section{margin:18px 0}
+  .blog .product-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:10px}
+  @media(max-width:560px){.blog .product-grid{grid-template-columns:1fr}}
+  .blog .product-card{border:1px solid var(--line);border-radius:11px;overflow:hidden;background:#fafcfd}
+  .blog .product-card .ph{aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:14px;text-align:center;padding:10px;background:linear-gradient(135deg,var(--teal),var(--teal-dark))}
+  .blog .product-card .pc-body{padding:11px 13px}
+  .blog .product-card h3{margin:0 0 4px;font-size:14px}
+  .blog .product-card .price{color:var(--green);font-weight:800;font-size:14px}
+  .blog .product-card p{font-size:12.5px;margin:6px 0 8px;color:#64748b}
+  .blog .cta-block{margin:22px 0 4px;padding:20px;border-radius:14px;background:linear-gradient(120deg,var(--navy),var(--navy-2));color:#fff;text-align:center}
+  .blog .cta-block p{color:#e2e8f0;font-size:15px;margin:0 0 12px}
+  .blog .cta-block a.cta-btn{display:inline-block;background:var(--teal);color:#fff;padding:11px 26px;border-radius:10px;text-decoration:none;font-weight:800}
+  .wordcount{font-size:12px;color:var(--muted-2);margin-top:8px;text-align:right}
+
+  /* ---------- SEO ---------- */
+  .serp{border:1px solid var(--line);border-radius:11px;padding:16px 18px;background:#fff;margin-bottom:16px}
+  .serp .url{color:#202124;font-size:13px}
+  .serp .url .site{color:#5f6368}
+  .serp .title{color:#1a0dab;font-size:19px;margin:3px 0;line-height:1.3;cursor:pointer}
+  .serp .title:hover{text-decoration:underline}
+  .serp .desc{color:#4d5156;font-size:13.5px;line-height:1.5}
+  .meterbar{height:6px;border-radius:6px;background:#e2e8f0;overflow:hidden;margin-top:6px}
+  .meterbar > i{display:block;height:100%;border-radius:6px;transition:.4s}
+  .meta-row{display:flex;justify-content:space-between;font-size:12px;margin-top:4px}
+  .ok{color:var(--green)}.warn{color:var(--amber)}.bad{color:var(--red)}
+
+  /* ---------- Code blocks ---------- */
+  .codewrap{position:relative;margin-bottom:16px}
+  .codewrap .copy{position:absolute;top:10px;right:10px}
+  pre.code{background:#0b1220;color:#cbd5e1;border-radius:11px;padding:16px;overflow:auto;font-family:var(--mono);font-size:12.5px;line-height:1.6;max-height:340px;margin:0}
+  pre.code .key{color:#7dd3fc}
+  pre.code .str{color:#86efac}
+  pre.code .pun{color:#94a3b8}
+
+  /* ---------- Modal ---------- */
+  .modal-bg{position:fixed;inset:0;background:rgba(15,23,42,.55);display:none;align-items:center;justify-content:center;z-index:100;padding:20px;backdrop-filter:blur(2px)}
+  .modal-bg.show{display:flex;animation:fade .2s}
+  .modal{background:#fff;border-radius:18px;max-width:460px;width:100%;padding:28px;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,.3)}
+  .modal .check{width:64px;height:64px;border-radius:50%;background:var(--green-bg);color:var(--green);font-size:34px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
+  .modal h3{margin:0 0 8px;font-size:20px}
+  .modal p{color:var(--muted);font-size:14px;margin:0 0 16px}
+  .modal .draftlink{background:#f1f5f9;border:1px solid var(--line);border-radius:10px;padding:11px;font-family:var(--mono);font-size:12.5px;word-break:break-all;color:var(--teal-dark);margin-bottom:18px}
+
+  /* ---------- Toast ---------- */
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--navy);color:#fff;padding:12px 22px;border-radius:30px;font-size:13.5px;font-weight:600;box-shadow:0 8px 28px rgba(0,0,0,.3);z-index:120;opacity:0;transition:.3s}
+  .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+
+  /* ---------- Spinner ---------- */
+  .spin{width:15px;height:15px;border:2.5px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:rot .7s linear infinite}
+  @keyframes rot{to{transform:rotate(360deg)}}
+
+  .note{font-size:12px;background:var(--amber-bg);color:#92400e;border:1px solid #fcd34d;border-radius:9px;padding:9px 12px;margin-top:10px}
+  .divider{height:1px;background:var(--line);margin:16px 0}
+  .foot{max-width:1280px;margin:0 auto;padding:18px 20px 40px;color:var(--muted-2);font-size:12px;text-align:center}
+</style>
+</head>
+<body>
+
+<header class="app">
+  <div class="hdr-wrap">
+    <div class="logo"><span class="dot"></span>DeoDap</div>
+    <span class="hdr-sub">YouTube&nbsp;→&nbsp;Shopify Blog Automation</span>
+    <span class="hdr-spacer"></span>
+    <span class="pill" id="modePill">LOCAL AI MODE</span>
+    <label class="api-toggle"><input type="checkbox" id="useClaude" /> Use real Claude API</label>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- ============ LEFT: INPUT ============ -->
+  <div style="display:flex;flex-direction:column;gap:20px">
+
+    <div class="panel">
+      <div class="panel-head"><span class="ico">▶</span><h2>1 · Source Video</h2></div>
+      <div class="panel-body">
+        <div class="field">
+          <label>YouTube URL</label>
+          <input type="text" id="ytUrl" placeholder="https://youtube.com/watch?v=..." value="https://www.youtube.com/watch?v=dQw4w9WgXcQ" />
+          <div class="hint">Paste any DeoDap product video URL. A preview loads automatically.</div>
+        </div>
+        <div class="video-frame" id="videoFrame">
+          <div class="video-empty">📺<span>Video preview appears here</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><span class="ico">✎</span><h2>2 · Transcript</h2></div>
+      <div class="panel-body">
+        <div class="field">
+          <label>Video Transcript (Hindi / Hinglish / English)</label>
+          <textarea id="transcript" placeholder="Paste the transcript here (YouTube → Show transcript), or click 'Load Sample'..."></textarea>
+          <div class="hint">In production this is auto-extracted via yt-dlp + faster-whisper. For the demo, paste or load a sample.</div>
+        </div>
+        <div class="row">
+          <button class="btn btn-ghost btn-sm" id="loadSample">📄 Load Sample (Casserole)</button>
+          <button class="btn btn-ghost btn-sm" id="loadSample2">📄 Sample (Diwali Lights)</button>
+        </div>
+
+        <div id="claudeKeyWrap" class="field" style="display:none;margin-top:16px">
+          <label>Anthropic API Key</label>
+          <input type="password" id="claudeKey" placeholder="sk-ant-..." />
+          <div class="hint">Used only in your browser to call Claude directly. Never stored or sent anywhere else.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><span class="ico">⚙</span><h2>3 · Run Pipeline</h2></div>
+      <div class="panel-body">
+        <button class="btn btn-primary btn-block" id="runBtn" style="margin-bottom:14px">⚡ Run Full Pipeline</button>
+        <div class="pipeline" id="pipeline"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============ RIGHT: OUTPUT ============ -->
+  <div class="panel">
+    <div class="tabs" id="tabs">
+      <button class="tab active" data-tab="analysis">🧠 Analysis</button>
+      <button class="tab" data-tab="blog">📝 Blog Post</button>
+      <button class="tab" data-tab="seo">🔍 SEO</button>
+      <button class="tab" data-tab="schema">{ } Schema</button>
+      <button class="tab" data-tab="publish">🚀 Publish</button>
+    </div>
+
+    <div class="tab-pane active" id="pane-analysis">
+      <div class="empty-state"><div class="big">🧠</div><h3>No analysis yet</h3><p>Run the pipeline to extract topic, intent, products & keywords.</p></div>
+    </div>
+    <div class="tab-pane" id="pane-blog">
+      <div class="empty-state"><div class="big">📝</div><h3>No blog generated yet</h3><p>The full SEO blog post will render here.</p></div>
+    </div>
+    <div class="tab-pane" id="pane-seo">
+      <div class="empty-state"><div class="big">🔍</div><h3>No SEO data yet</h3><p>SEO title, meta description, slug & SERP preview appear here.</p></div>
+    </div>
+    <div class="tab-pane" id="pane-schema">
+      <div class="empty-state"><div class="big">{ }</div><h3>No schema yet</h3><p>FAQ + Article JSON-LD structured data will appear here.</p></div>
+    </div>
+    <div class="tab-pane" id="pane-publish">
+      <div class="empty-state"><div class="big">🚀</div><h3>Not published yet</h3><p>Run the pipeline, then publish a Shopify draft.</p></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="foot">
+  DeoDap · Dabster International Pvt. Ltd., Rajkot · Proof-of-Concept Demo · This runs 100% in your browser.
+</div>
+
+<!-- Modal -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <div class="check">✓</div>
+    <h3>Draft Created in Shopify</h3>
+    <p>Your blog post was published as a <b>draft</b> — ready for one-click review &amp; publish.</p>
+    <div class="draftlink" id="draftLink"></div>
+    <button class="btn btn-primary btn-block" id="closeModal">Got it</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   DeoDap Demo — client-side pipeline engine
+   ============================================================ */
+const $ = (s)=>document.querySelector(s);
+const $$ = (s)=>document.querySelectorAll(s);
+
+const STATE = { analysis:null, shopify:null, blogHtml:null, seo:null, schema:null, published:null };
+
+const STAGES = [
+  {n:1, label:"URL Ingestion"},
+  {n:2, label:"Transcript Extraction"},
+  {n:3, label:"AI Content Analysis"},
+  {n:4, label:"Shopify Data Fetch"},
+  {n:5, label:"Blog Generation"},
+  {n:6, label:"SEO & Schema Builder"},
+  {n:7, label:"Shopify Publish"},
+];
+
+/* ---------- Sample transcripts ---------- */
+const SAMPLE_1 = `Namaste doston, aaj hum baat karenge ek bahut useful kitchen product ke baare mein jo hai stainless steel casserole. Yeh casserole Grabnix par available hai aur iska price bhi bahut reasonable hai, sirf 499 rupaye.
+
+Pehle baat karte hain quality ki. Yeh pure stainless steel se bana hai, rust nahi karega aur bahut dino tak chalega. Indian kitchen mein jab hum dal banate hain ya sabzi, toh ek achhe casserole ki zaroorat hoti hai. Yeh 3 liter ka hai, family ke liye perfect size.
+
+Features ki baat karein toh isme tight fitting lid hai jo steam ko andar rakhta hai, khana garam rehta hai 4-5 ghante tak. Handles ergonomic hain. Gas stove pe bhi chalega aur induction pe bhi.
+
+Price bahut affordable hai, 500 rupaye se kam mein itni quality. Grabnix par aaj hi order karein, ghar pe delivery. Agar aap ek reliable, affordable casserole dhundh rahe hain toh yeh bilkul sahi choice hai. Link description mein hai, order karein, like aur subscribe karein. Dhanyavad!`;
+
+const SAMPLE_2 = `Hello friends! Diwali aane wali hai aur aaj main aapko dikhaunga DeoDap ki amazing LED decorative lights collection. Yeh lights aapke ghar ko bilkul transform kar dengi is festival season mein.
+
+Toh humare paas hai multicolor LED string lights, jo 10 meter lambi hain aur isme 100 LED bulbs hain. Yeh waterproof bhi hain toh aap ise balcony ya garden mein bhi laga sakte hain. Price sirf 299 rupaye, bahut hi budget friendly.
+
+Iske alawa humare paas hai diya shape LED candles jo bilkul real lagti hain lekin safe hain, koi fire risk nahi. Bachon wale ghar ke liye perfect. Aur ek rajai jaisa cozy feel ke liye warm white fairy lights bhi available hain.
+
+Yeh saari decorative items aapko milengi DeoDap ki festive collection mein wholesale price par. Diwali ke liye ghar sajana hai toh abhi order karein. Bulk order par extra discount bhi milega. Toh der mat karein, festive lights collection check karein aur apne ghar ko roshan karein!`;
+
+/* ---------- Stopwords (English + Hinglish) ---------- */
+const STOP = new Set("a an the and or but if then is are was were be been being to of in on at for with from by as it its this that these those i you he she we they me him her us them my your his our their aaj hum yeh ye hai hain ka ke ki ko mein me se par bhi toh aur ek bahut aap kar karein karo nahi na bilkul jo jab ya ab abhi sirf bana banate liye wala wali raha rahe rehta dino tak baat baare karte friends hello namaste dhanyavad doston ghar pe".split(/\s+/));
+
+/* ---------- Product / collection keyword maps (Indian retail) ---------- */
+const PRODUCT_HINTS = ["casserole","container","bottle","jar","lights","led","candle","fairy lights","string lights","pot","pan","kadhai","tawa","knife","peeler","grater","organizer","rack","holder","mat","cover","set","kit","box","gadget","toy","bag","brush","mop","wiper","dispenser","tiffin","lunch box","water bottle","spice","masala","cookware","kitchenware","bedsheet","rajai","blanket","cushion","curtain","diya"];
+const COLLECTION_HINTS = {
+  "casserole":"kitchen-essentials","pot":"cookware","pan":"cookware","kadhai":"cookware","tawa":"cookware",
+  "lights":"festive-decor","led":"festive-decor","candle":"festive-decor","diya":"festive-decor","fairy lights":"festive-decor","string lights":"festive-decor",
+  "toy":"kids-toys","gadget":"gadgets","bottle":"kitchen-essentials","tiffin":"kitchen-essentials","lunch box":"kitchen-essentials",
+  "bedsheet":"home-furnishing","rajai":"home-furnishing","blanket":"home-furnishing","cushion":"home-furnishing","curtain":"home-furnishing"
+};
+
+/* ============================================================
+   LOCAL AI ANALYZER  (works offline, deterministic & sensible)
+   ============================================================ */
+function localAnalyze(transcript){
+  const text = transcript.trim();
+  const lower = text.toLowerCase();
+  const words = lower.replace(/[^a-z0-9ऀ-ॿ\s]/g," ").split(/\s+/).filter(Boolean);
+
+  // ---- buying intent: purchase signal density ----
+  const buySignals = ["price","buy","order","rupaye","rupees","₹","rs","discount","offer","deal","affordable","cheap","budget","wholesale","delivery","cart","shop","sale","purchase"];
+  let buyHits=0; buySignals.forEach(s=>{ buyHits += (lower.split(s).length-1); });
+  const hasPrice = /(₹|rs\.?\s?\d|\d+\s?(rupaye|rupees))/i.test(text);
+  let buying = "low";
+  if(buyHits>=5 || (hasPrice && buyHits>=2)) buying="high";
+  else if(buyHits>=2 || hasPrice) buying="medium";
+
+  // ---- search intent ----
+  let search = "informational";
+  if(/\b(best|top|vs|versus|compare|comparison|review|which|kaunsa|achha)\b/i.test(lower)) search="commercial";
+  if(/\b(buy|order|price|discount|shop now|delivery|wholesale)\b/i.test(lower) && buying==="high") search="transactional";
+  if(/\b(how to|kaise|steps|recipe|tutorial|guide|banana|banate)\b/i.test(lower) && buying!=="high") search="informational";
+
+  // ---- products (word-boundary match + descriptor-aware naming) ----
+  const found = [];
+  PRODUCT_HINTS.forEach(h=>{
+    const re = new RegExp("\\b"+escRe(h)+"s?\\b","i");
+    if(re.test(lower) && !found.includes(h)) found.push(h);
+  });
+  let products = dedupSubstrings(found.map(h=>buildProductName(text,lower,h)).filter(Boolean)).slice(0,5);
+  if(products.length===0) products.push(titleCase(topNouns(words,1)[0]||"DeoDap Product"));
+
+  // ---- collections ----
+  const collSet = new Set();
+  found.forEach(h=>{ if(COLLECTION_HINTS[h]) collSet.add(COLLECTION_HINTS[h]); });
+  if(collSet.size===0) collSet.add("home-essentials");
+  const collections = [...collSet].slice(0,3).map(slug=>({name:titleCase(slug.replace(/-/g," ")),handle:slug}));
+
+  // ---- keywords ----
+  const freq = {};
+  words.forEach(w=>{ if(w.length>3 && !STOP.has(w) && !/^\d+$/.test(w)) freq[w]=(freq[w]||0)+1; });
+  const ranked = Object.entries(freq).sort((a,b)=>b[1]-a[1]).map(e=>e[0]);
+  const primaryBase = products[0] ? products[0].toLowerCase() : (ranked[0]||"product");
+  const primary = titleCase(primaryBase) ;
+  const secondary = buildSecondary(primary, ranked, products);
+
+  // ---- topic / problem / audience ----
+  const firstSentence = (text.split(/[.!?\n]/).find(s=>s.trim().length>20)||text).trim();
+  const topic = `${primary} — ${products.length>1?"product showcase":"product spotlight"} for Indian homes`;
+  const problem = inferProblem(lower, primary);
+  const audience = inferAudience(lower);
+
+  // ---- key points (synthesized clean English, never raw Hinglish) ----
+  const keyPoints = synthKeyPoints(text, lower, primary);
+
+  return {
+    topic,
+    intent: search,
+    buying_intent: buying,
+    target_audience: audience,
+    problem_solved: problem,
+    products,
+    collections,
+    primary_keyword: primary,
+    secondary_keywords: secondary,
+    key_points: keyPoints,
+    _engine: "local"
+  };
+}
+
+const ACRONYMS = new Set(["LED","USB","FAQ","OG","CTA","PVC","ABS","HD","3D","LCD","SS"]);
+const DESCRIPTORS = new Set(["stainless","steel","multicolor","multi","led","string","fairy","warm","white","cool","decorative","shape","diya","plastic","glass","wooden","ceramic","copper","brass","electric","rechargeable","waterproof","cotton","silk","non-stick","nonstick","premium","mini","jumbo","portable","foldable"]);
+function titleCaseWord(w){
+  w = (w||"").replace(/[^a-zA-Z0-9]/g,"");
+  if(!w) return "";
+  if(ACRONYMS.has(w.toUpperCase())) return w.toUpperCase();
+  return w.charAt(0).toUpperCase()+w.slice(1).toLowerCase();
+}
+function titleCase(s){ return (s||"").split(/\s+/).map(titleCaseWord).filter(Boolean).join(" ").trim(); }
+function escRe(s){ return s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"); }
+function buildProductName(text, lower, hint){
+  const descAlt = [...DESCRIPTORS].join("|");
+  const re = new RegExp("((?:(?:"+descAlt+")\\s+){0,4})"+escRe(hint)+"s?\\b","i");
+  const m = lower.match(re);
+  let parts;
+  if(m && m[1] && m[1].trim()){ parts = m[1].trim().split(/\s+/).filter(Boolean).concat(hint.split(" ")); }
+  else { parts = hint.split(" "); }
+  return parts.map(titleCaseWord).filter(Boolean).join(" ").replace(/\s+/g," ").trim();
+}
+function dedupSubstrings(arr){
+  const sorted = [...new Set(arr)].sort((a,b)=>b.length-a.length);
+  const keep = [];
+  sorted.forEach(s=>{ if(!keep.some(k=>k.toLowerCase().includes(s.toLowerCase()))) keep.push(s); });
+  return keep;
+}
+function topNouns(words,n){
+  const freq={}; words.forEach(w=>{ if(w.length>4 && !STOP.has(w)) freq[w]=(freq[w]||0)+1;});
+  return Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,n).map(e=>e[0]);
+}
+function buildSecondary(primary, ranked, products){
+  const p = primary.toLowerCase();
+  const out = [
+    `best ${p} in india`,
+    `${p} online`,
+    `${p} price`,
+    `buy ${p}`,
+    `${p} wholesale`,
+  ];
+  ranked.slice(0,4).forEach(r=>{ if(!p.includes(r) && out.length<8) out.push(`${r} ${p}`); });
+  return [...new Set(out)].slice(0,7);
+}
+function inferProblem(lower, primary){
+  if(/casserole|pot|cookware|kitchen/.test(lower)) return `Finding a durable, affordable ${primary.toLowerCase()} that keeps food warm and lasts long in a busy Indian kitchen.`;
+  if(/light|led|diya|festive|diwali/.test(lower)) return `Decorating the home affordably and safely for festivals without expensive or unsafe lighting.`;
+  if(/toy/.test(lower)) return `Getting safe, fun, value-for-money toys for kids without overspending.`;
+  return `Choosing a reliable, value-for-money ${primary.toLowerCase()} for everyday Indian household use.`;
+}
+function inferAudience(lower){
+  if(/kitchen|casserole|dal|sabzi|cook/.test(lower)) return "Indian home cooks & value-conscious household shoppers";
+  if(/diwali|festive|light|decor/.test(lower)) return "Families decorating their homes for festivals on a budget";
+  if(/wholesale|bulk|reseller/.test(lower)) return "Resellers & bulk buyers sourcing for D2C/retail";
+  return "Budget-conscious Indian online shoppers";
+}
+// Synthesize clean English talking points from detected signals — never copies
+// raw transcript sentences (which would be Hinglish) into the English blog.
+function synthKeyPoints(text, lower, primary){
+  const pts = [];
+  const materials = [["stainless steel","premium stainless steel"],["plastic","sturdy food-grade plastic"],["cotton","soft breathable cotton"],["glass","toughened glass"],["steel","durable steel"]];
+  for(const [m,label] of materials){ if(lower.includes(m)){ pts.push(`Made from ${label} — built to last through daily use`); break; } }
+
+  const pm = text.match(/(?:₹|rs\.?\s?)\s?(\d{2,5})|(\d{2,5})\s*(?:rupaye|rupees)/i);
+  const price = pm ? (pm[1]||pm[2]) : null;
+  if(price) pts.push(`Budget-friendly pricing — starts at around ₹${price}`);
+
+  if(/waterproof/i.test(lower)) pts.push("Waterproof build — safe for balconies, gardens and outdoor use");
+  if(/\blid\b/i.test(lower)) pts.push("Tight-fitting lid keeps food warm and fresh for hours");
+  if(/rechargeable|battery/i.test(lower)) pts.push("Convenient rechargeable design — no messy wires");
+  if(/\bleds?\b/i.test(lower)) pts.push("Bright, energy-efficient LED lighting");
+  if(/\bsafe\b|no fire|fire risk/i.test(lower)) pts.push("Child-safe design with no open-flame fire risk");
+
+  const cap = text.match(/(\d+(?:\.\d+)?)\s*(litre|liter|meter|metre|ml|inch)/i);
+  if(cap) pts.push(`Practical ${cap[1]} ${cap[2].toLowerCase()} size — right for Indian families`);
+  const ledCount = text.match(/(\d{2,4})\s*led/i);
+  if(ledCount) pts.push(`Packed with ${ledCount[1]} LED bulbs for full, even coverage`);
+
+  const store = /grabnix/i.test(lower) ? "Grabnix" : "DeoDap";
+  pts.push(`Available on ${store} at wholesale-friendly prices with home delivery`);
+
+  const generic = ["Designed for everyday Indian household use","Backed by DeoDap's quality-and-value promise","Easy to order online with fast delivery across India"];
+  let i=0; while(pts.length<4 && i<generic.length){ if(!pts.includes(generic[i])) pts.push(generic[i]); i++; }
+  return [...new Set(pts)].slice(0,6);
+}
+
+/* ============================================================
+   MOCK SHOPIFY FETCH (deterministic placeholder data)
+   ============================================================ */
+function mockShopify(analysis){
+  const colors = ["#0d9488","#0f766e","#2563eb","#7c3aed","#db2777"];
+  const products = analysis.products.slice(0,4).map((name,i)=>({
+    title: name,
+    handle: slugify(name),
+    price: [499,299,799,349,199][i%5],
+    image_color: colors[i%colors.length],
+    product_type: analysis.collections[0]?.name || "Home"
+  }));
+  while(products.length<2){
+    const i=products.length;
+    products.push({title:`${analysis.primary_keyword} ${["Pro","Deluxe"][i]||"Plus"}`,handle:slugify(analysis.primary_keyword+"-"+i),price:[599,449][i]||399,image_color:colors[i%colors.length],product_type:"Home"});
+  }
+  return { products, collections: analysis.collections };
+}
+
+/* ============================================================
+   BLOG GENERATOR (local templating from analysis + shopify)
+   ============================================================ */
+function localBlog(a, shop){
+  const kw = a.primary_keyword;
+  const prods = shop.products;
+  const coll = shop.collections[0] || {name:"Home Essentials",handle:"home-essentials"};
+  const leadWithCTA = a.buying_intent==="high";
+
+  const intro = `<p>${a.problem_solved} If that sounds familiar, you're in the right place. In this guide we break down everything you need to know about the <strong>${kw}</strong> — and why it's become a favourite for ${a.target_audience.toLowerCase()}.</p>`;
+
+  const ctaInline = `<p>👉 Want to skip ahead? <a href="https://deodap.in/collections/${coll.handle}">Browse the full ${coll.name} collection</a> on DeoDap.</p>`;
+
+  const sections = a.key_points.slice(0,4).map((pt,i)=>{
+    const h = sectionHeading(pt,i,kw);
+    return `<h2>${h}</h2><p>${expandPoint(pt,kw,a)}</p>`;
+  }).join("");
+
+  const productCards = prods.map(p=>`
+    <div class="product-card">
+      <div class="ph" style="background:linear-gradient(135deg,${p.image_color},#0f172a)">${escapeHtml(p.title)}</div>
+      <div class="pc-body">
+        <h3><a href="https://deodap.in/products/${p.handle}">${escapeHtml(p.title)}</a></h3>
+        <div class="price">₹${p.price}</div>
+        <p>${productBlurb(p,a)}</p>
+        <a class="btn btn-primary btn-sm" href="https://deodap.in/products/${p.handle}">View Product →</a>
+      </div>
+    </div>`).join("");
+
+  const faqs = buildFAQs(a, prods, coll);
+  const faqHtml = `<h2>Frequently Asked Questions</h2><dl>${faqs.map(f=>`<dt>${escapeHtml(f.q)}</dt><dd>${escapeHtml(f.a)}</dd>`).join("")}</dl>`;
+
+  const cta = `<div class="cta-block"><p>Ready to upgrade your home with quality ${kw.toLowerCase()} at wholesale prices?</p><a class="cta-btn" href="https://deodap.in/collections/${coll.handle}">Shop the ${coll.name} Collection →</a></div>`;
+
+  const title = blogTitle(kw, a);
+  const body = `<h1>${escapeHtml(title)}</h1>${intro}${leadWithCTA?ctaInline:""}${sections}
+    <div class="product-section"><h2>Top ${kw} Picks on DeoDap</h2>
+      <p>Here are our most popular options — all backed by DeoDap's quality-and-value promise:</p>
+      <div class="product-grid">${productCards}</div>
+    </div>
+    ${!leadWithCTA?ctaInline:""}
+    ${faqHtml}${cta}`;
+
+  return {title, body, faqs, coll, prods};
+}
+function sectionHeading(pt,i,kw){
+  const heads = [`Why the ${kw} Stands Out`, `Key Features That Matter`, `Real-World Use in Indian Homes`, `Value for Money: What You Get`];
+  return heads[i] || `More About the ${kw}`;
+}
+function expandPoint(pt,kw,a){
+  return `${pt} For ${a.target_audience.toLowerCase()}, this makes a real, day-to-day difference. The ${kw.toLowerCase()} is designed with practical Indian household use in mind — durable enough for everyday cooking, festivals, and family life, without stretching your budget.`;
+}
+function productBlurb(p,a){
+  return `A dependable pick from DeoDap's ${p.product_type.toLowerCase()} range — quality build at a wholesale-friendly ₹${p.price}. Perfect for everyday Indian homes.`;
+}
+function blogTitle(kw,a){
+  if(a.intent==="commercial") return `Best ${kw} for Indian Homes (2026 Buying Guide)`;
+  if(a.intent==="transactional") return `${kw}: Buy Quality at Wholesale Prices | DeoDap`;
+  return `${kw}: A Practical Guide for Every Indian Home`;
+}
+function buildFAQs(a, prods, coll){
+  const kw = a.primary_keyword;
+  return [
+    {q:`What makes DeoDap's ${kw.toLowerCase()} a good choice?`, a:`DeoDap focuses on quality and value — durable materials, practical design for Indian homes, and wholesale-friendly pricing starting at just ₹${Math.min(...prods.map(p=>p.price))}.`},
+    {q:`How much does the ${kw.toLowerCase()} cost?`, a:`Prices start at ₹${Math.min(...prods.map(p=>p.price))} and vary by size and variant. You can see live pricing in the ${coll.name} collection on deodap.in.`},
+    {q:`Is it suitable for everyday use?`, a:`Yes. ${a.problem_solved} These products are built specifically to solve that, holding up well to daily Indian household use.`},
+  ];
+}
+
+/* ============================================================
+   SEO BUILDER
+   ============================================================ */
+// Build a meta description that lands inside the SEO-ideal 140–155 char window,
+// ending on clean punctuation (no mid-phrase truncation where avoidable).
+function buildMetaDesc(kw){
+  const k = kw.toLowerCase();
+  const lead = `Discover the best ${k} for Indian homes at wholesale prices on DeoDap.`;
+  const clauses = [
+    " Durable, value-for-money picks built for everyday use.",
+    " Shop the full collection now and save big today.",
+    " Trusted quality with fast delivery across India.",
+  ];
+  let d = lead;
+  // greedily add whole clauses while staying within 155
+  for(const c of clauses){ if((d + c).length <= 155) d += c; }
+  // too short → force-append remaining text and trim at a word boundary
+  if(d.length < 140){
+    const extra = clauses.join("");
+    d = (lead + extra).slice(0,155).replace(/\s+\S*$/,"");
+  }
+  // too long (very long keyword) → trim at word boundary with ellipsis
+  if(d.length > 155){ d = d.slice(0,152).replace(/\s+\S*$/,"") + "..."; }
+  return d;
+}
+function buildSEO(a, blog, shop){
+  let seoTitle = blogTitle(a.primary_keyword,a);
+  if(seoTitle.length>60) seoTitle = (a.primary_keyword + " | DeoDap").slice(0,60);
+  const metaDesc = buildMetaDesc(a.primary_keyword);
+  const slug = slugify(a.primary_keyword+"-deodap");
+  return {seoTitle, metaDesc, slug, faqs:blog.faqs, image_color:shop.products[0]?.image_color, primary:a.primary_keyword};
+}
+
+/* ============================================================
+   SCHEMA BUILDER (JSON-LD)
+   ============================================================ */
+function buildSchema(a, seo, blog){
+  const faqSchema = {
+    "@context":"https://schema.org","@type":"FAQPage",
+    "mainEntity": seo.faqs.map(f=>({"@type":"Question","name":f.q,"acceptedAnswer":{"@type":"Answer","text":f.a}}))
+  };
+  const articleSchema = {
+    "@context":"https://schema.org","@type":"BlogPosting",
+    "headline": seo.seoTitle,
+    "author":{"@type":"Organization","name":"DeoDap"},
+    "publisher":{"@type":"Organization","name":"DeoDap","logo":{"@type":"ImageObject","url":"https://deodap.in/logo.png"}},
+    "description": seo.metaDesc,
+    "datePublished": "2026-06-23T00:00:00Z",
+    "mainEntityOfPage":`https://deodap.in/blogs/all/${seo.slug}`
+  };
+  return {faqSchema, articleSchema};
+}
+
+/* ============================================================
+   UTILITIES
+   ============================================================ */
+function slugify(s){return (s||"").toLowerCase().trim().replace(/[^a-z0-9\s-]/g,"").replace(/\s+/g,"-").replace(/-+/g,"-").slice(0,60).replace(/^-|-$/g,"");}
+function escapeHtml(s){return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+function extractVideoId(url){
+  const pats=[/youtube\.com\/watch\?.*v=([A-Za-z0-9_-]{11})/,/youtu\.be\/([A-Za-z0-9_-]{11})/,/youtube\.com\/shorts\/([A-Za-z0-9_-]{11})/,/youtube\.com\/embed\/([A-Za-z0-9_-]{11})/];
+  for(const p of pats){const m=url.match(p);if(m)return m[1];}
+  return null;
+}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+function jsonHighlight(obj){
+  let s = JSON.stringify(obj,null,2);
+  s = escapeHtml(s);
+  s = s.replace(/(&quot;[^&]*?&quot;)(\s*:)/g,'<span class="key">$1</span>$2');
+  s = s.replace(/:(\s*)(&quot;.*?&quot;)/g,':$1<span class="str">$2</span>');
+  s = s.replace(/([{}\[\],])/g,'<span class="pun">$1</span>');
+  return s;
+}
+
+/* ============================================================
+   CLAUDE API (optional real mode)
+   ============================================================ */
+async function claudeAnalyze(transcript, key){
+  const sys = "You are a content strategist for DeoDap, an Indian B2B wholesale company (kitchenware, home goods, gadgets, toys). Videos are Hindi/Hinglish. Extract commercial signals. Respond with valid JSON only.";
+  const prompt = `Analyze this transcript. Return ONLY JSON:
+{"topic":"","intent":"informational|commercial|transactional","buying_intent":"low|medium|high","target_audience":"","problem_solved":"","products":[],"collections":[{"name":"","handle":""}],"primary_keyword":"","secondary_keywords":[],"key_points":[]}
+
+Transcript:
+${transcript.slice(0,12000)}`;
+  const txt = await callClaude(key, "claude-sonnet-4-6", sys, prompt, 2000);
+  const obj = JSON.parse(stripJson(txt));
+  obj._engine="claude";
+  // normalize collections to {name,handle}
+  obj.collections = (obj.collections||[]).map(c=> typeof c==="string"?{name:c,handle:slugify(c)}:{name:c.name||c.handle,handle:c.handle||slugify(c.name||"")});
+  return obj;
+}
+async function callClaude(key, model, system, prompt, maxTokens){
+  const res = await fetch("https://api.anthropic.com/v1/messages",{
+    method:"POST",
+    headers:{
+      "content-type":"application/json",
+      "x-api-key":key,
+      "anthropic-version":"2023-06-01",
+      "anthropic-dangerous-direct-browser-access":"true"
+    },
+    body:JSON.stringify({model, max_tokens:maxTokens, system, messages:[{role:"user",content:prompt}]})
+  });
+  if(!res.ok){ const e=await res.text(); throw new Error("Claude API "+res.status+": "+e.slice(0,200)); }
+  const data = await res.json();
+  return data.content[0].text;
+}
+function stripJson(t){ const m=t.match(/\{[\s\S]*\}/); return m?m[0]:t; }
+
+/* ============================================================
+   PIPELINE RUNNER
+   ============================================================ */
+function renderPipeline(){
+  $("#pipeline").innerHTML = STAGES.map(s=>`
+    <div class="pstep" id="step-${s.n}">
+      <div class="num">${s.n}</div>
+      <div class="lbl">${s.label}</div>
+      <div class="stat">waiting</div>
+    </div>`).join("");
+}
+function setStep(n, status, statText){
+  const el = $("#step-"+n); if(!el) return;
+  el.classList.remove("active","done","err");
+  if(status) el.classList.add(status);
+  if(statText!==undefined) el.querySelector(".stat").textContent = statText;
+}
+function resetSteps(){ STAGES.forEach(s=>setStep(s.n,null,"waiting")); }
+
+async function runPipeline(){
+  const transcript = $("#transcript").value.trim();
+  const url = $("#ytUrl").value.trim();
+  if(!url){ toast("Please enter a YouTube URL"); switchTab("analysis"); return; }
+  if(!transcript){ toast("Please paste or load a transcript"); return; }
+
+  const useClaude = $("#useClaude").checked;
+  const key = $("#claudeKey").value.trim();
+  if(useClaude && !key){ toast("Enter your Anthropic API key (or untick 'Use real Claude API')"); return; }
+
+  const btn = $("#runBtn");
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Running…';
+  resetSteps();
+
+  try{
+    // Stage 1: URL
+    setStep(1,"active","resolving"); await sleep(450);
+    const vid = extractVideoId(url);
+    if(!vid){ setStep(1,"err","invalid URL"); throw new Error("Invalid YouTube URL"); }
+    embedVideo(vid);
+    setStep(1,"done","✓ "+vid);
+
+    // Stage 2: Transcript (already provided in demo)
+    setStep(2,"active","reading"); await sleep(500);
+    const wc = transcript.split(/\s+/).length;
+    setStep(2,"done","✓ "+wc+" words");
+
+    // Stage 3: Analysis
+    setStep(3,"active", useClaude?"Claude…":"analyzing"); await sleep(useClaude?0:600);
+    let analysis;
+    if(useClaude){
+      try{ analysis = await claudeAnalyze(transcript, key); }
+      catch(e){ toast("Claude failed — using local engine. "+e.message); analysis = localAnalyze(transcript); setModePill(true); }
+    } else {
+      analysis = localAnalyze(transcript);
+    }
+    STATE.analysis = analysis;
+    renderAnalysis(analysis);
+    setStep(3,"done","✓ "+(analysis._engine==="claude"?"Claude":"local"));
+
+    // Stage 4: Shopify
+    setStep(4,"active","fetching"); await sleep(550);
+    const shop = mockShopify(analysis);
+    STATE.shopify = shop;
+    setStep(4,"done","✓ "+shop.products.length+" products");
+
+    // Stage 5: Blog
+    setStep(5,"active", useClaude?"Claude Opus…":"writing"); await sleep(useClaude?0:700);
+    let blog = localBlog(analysis, shop); // local templating (Opus path could replace body)
+    STATE.blogHtml = blog.body;
+    renderBlog(blog);
+    setStep(5,"done","✓ blog ready");
+
+    // Stage 6: SEO + Schema
+    setStep(6,"active","building"); await sleep(500);
+    const seo = buildSEO(analysis, blog, shop);
+    const schema = buildSchema(analysis, seo, blog);
+    STATE.seo = seo; STATE.schema = schema;
+    renderSEO(seo); renderSchema(schema);
+    setStep(6,"done","✓ SEO + JSON-LD");
+
+    // Stage 7: Publish (ready, not auto-published)
+    setStep(7,"active","preparing"); await sleep(450);
+    renderPublish(seo, blog);
+    setStep(7,"done","✓ ready to draft");
+
+    toast("Pipeline complete — blog draft ready!");
+    switchTab("blog");
+  }catch(err){
+    toast("Pipeline error: "+err.message);
+  }finally{
+    btn.disabled=false; btn.innerHTML="⚡ Run Full Pipeline";
+  }
+}
+
+/* ============================================================
+   RENDERERS
+   ============================================================ */
+function embedVideo(vid){
+  $("#videoFrame").innerHTML = `<iframe src="https://www.youtube.com/embed/${vid}" title="preview" allowfullscreen loading="lazy"></iframe>`;
+}
+function renderAnalysis(a){
+  const lvl = (v)=>`<span class="badge-lvl lvl-${v==='high'?'high':v==='medium'?'medium':v==='low'?'low':'info'}">${v.toUpperCase()}</span>`;
+  $("#pane-analysis").innerHTML = `
+    <div class="grid2" style="margin-bottom:12px">
+      <div class="acard"><div class="k">Main Topic</div><div class="v">${escapeHtml(a.topic)}</div></div>
+      <div class="acard"><div class="k">Problem Being Solved</div><div class="v">${escapeHtml(a.problem_solved)}</div></div>
+    </div>
+    <div class="grid2" style="margin-bottom:12px">
+      <div class="acard"><div class="k">Search Intent</div><div class="v">${lvl(a.intent)}</div></div>
+      <div class="acard"><div class="k">Buying Intent</div><div class="v">${lvl(a.buying_intent)}</div></div>
+    </div>
+    <div class="acard" style="margin-bottom:12px"><div class="k">Target Audience</div><div class="v">${escapeHtml(a.target_audience)}</div></div>
+    <div class="acard" style="margin-bottom:12px"><div class="k">Products Detected</div><div class="v"><div class="chips">${a.products.map(p=>`<span class="chip">${escapeHtml(p)}</span>`).join("")}</div></div></div>
+    <div class="acard" style="margin-bottom:12px"><div class="k">Collections</div><div class="v"><div class="chips">${a.collections.map(c=>`<span class="chip">${escapeHtml(c.name)} <small>/${c.handle}</small></span>`).join("")}</div></div></div>
+    <div class="grid2" style="margin-bottom:12px">
+      <div class="acard"><div class="k">Primary Keyword</div><div class="v"><strong>${escapeHtml(a.primary_keyword)}</strong></div></div>
+      <div class="acard"><div class="k">Secondary Keywords</div><div class="v"><div class="chips">${a.secondary_keywords.map(k=>`<span class="chip alt">${escapeHtml(k)}</span>`).join("")}</div></div></div>
+    </div>
+    <div class="acard"><div class="k">Key Talking Points</div><div class="v"><ul class="pts">${a.key_points.map(p=>`<li>${escapeHtml(p)}</li>`).join("")}</ul></div></div>
+    <div class="note">Engine: <b>${a._engine==='claude'?'Claude Sonnet 4.6 (live)':'Local heuristic AI (offline)'}</b> · In production, stage 3 always uses Claude Sonnet 4.6.</div>
+  `;
+}
+function renderBlog(blog){
+  const wc = blog.body.replace(/<[^>]+>/g," ").split(/\s+/).filter(Boolean).length;
+  $("#pane-blog").innerHTML = `
+    <div class="blog-toolbar">
+      <button class="btn btn-ghost btn-sm" onclick="copyText(STATE.blogHtml,'Blog HTML copied')">⧉ Copy HTML</button>
+      <button class="btn btn-dark btn-sm" onclick="switchTab('publish')">🚀 Go to Publish</button>
+    </div>
+    <div class="blog">${blog.body}</div>
+    <div class="wordcount">~${wc} words · target 800–1200 (demo uses condensed copy)</div>
+  `;
+}
+function renderSEO(seo){
+  const titleLen=seo.seoTitle.length, descLen=seo.metaDesc.length;
+  const tClass=titleLen<=60?'ok':'bad', dClass=(descLen>=140&&descLen<=155)?'ok':descLen<140?'warn':'bad';
+  const tPct=Math.min(100,titleLen/60*100), dPct=Math.min(100,descLen/155*100);
+  const barColor=(c)=>c==='ok'?'var(--green)':c==='warn'?'var(--amber)':'var(--red)';
+  $("#pane-seo").innerHTML = `
+    <div class="acard" style="margin-bottom:16px">
+      <div class="k">Google SERP Preview</div>
+      <div class="serp" style="margin-top:8px">
+        <div class="url"><span class="site">deodap.in</span> › blogs › all › ${escapeHtml(seo.slug)}</div>
+        <div class="title">${escapeHtml(seo.seoTitle)}</div>
+        <div class="desc">${escapeHtml(seo.metaDesc)}</div>
+      </div>
+    </div>
+    <div class="acard" style="margin-bottom:12px">
+      <div class="k">SEO Title</div>
+      <div class="v">${escapeHtml(seo.seoTitle)}</div>
+      <div class="meterbar"><i style="width:${tPct}%;background:${barColor(tClass)}"></i></div>
+      <div class="meta-row"><span class="${tClass}">${titleLen} / 60 chars</span><span class="${tClass}">${tClass==='ok'?'✓ Good':'⚠ Too long'}</span></div>
+    </div>
+    <div class="acard" style="margin-bottom:12px">
+      <div class="k">Meta Description</div>
+      <div class="v">${escapeHtml(seo.metaDesc)}</div>
+      <div class="meterbar"><i style="width:${dPct}%;background:${barColor(dClass)}"></i></div>
+      <div class="meta-row"><span class="${dClass}">${descLen} chars</span><span class="${dClass}">${dClass==='ok'?'✓ Ideal (140–155)':dClass==='warn'?'⚠ A bit short':'⚠ Too long'}</span></div>
+    </div>
+    <div class="grid2">
+      <div class="acard"><div class="k">URL Slug</div><div class="v"><code>/${escapeHtml(seo.slug)}</code></div></div>
+      <div class="acard"><div class="k">Canonical</div><div class="v" style="font-size:12.5px;word-break:break-all">https://deodap.in/blogs/all/${escapeHtml(seo.slug)}</div></div>
+    </div>
+  `;
+}
+function renderSchema(schema){
+  $("#pane-schema").innerHTML = `
+    <div class="codewrap">
+      <button class="btn btn-ghost btn-sm copy" onclick='copyText(JSON.stringify(STATE.schema.faqSchema,null,2),"FAQ schema copied")'>⧉ Copy</button>
+      <div class="k" style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px">FAQPage JSON-LD</div>
+      <pre class="code">${jsonHighlight(schema.faqSchema)}</pre>
+    </div>
+    <div class="codewrap">
+      <button class="btn btn-ghost btn-sm copy" onclick='copyText(JSON.stringify(STATE.schema.articleSchema,null,2),"Article schema copied")'>⧉ Copy</button>
+      <div class="k" style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px">BlogPosting JSON-LD</div>
+      <pre class="code">${jsonHighlight(schema.articleSchema)}</pre>
+    </div>
+    <div class="note">These go in the blog <b>&lt;head&gt;</b> for Google rich results (FAQ accordions + article cards).</div>
+  `;
+}
+function renderPublish(seo, blog){
+  $("#pane-publish").innerHTML = `
+    <div class="acard" style="margin-bottom:16px">
+      <div class="k">Ready to Publish — Shopify Draft</div>
+      <div class="v" style="margin-top:8px">
+        <table style="width:100%;font-size:13.5px;border-collapse:collapse">
+          <tr><td style="color:var(--muted);padding:5px 0;width:130px">Target store</td><td><b>grabnix.myshopify.com</b></td></tr>
+          <tr><td style="color:var(--muted);padding:5px 0">Blog</td><td>News / All (deodap.in/blogs/all)</td></tr>
+          <tr><td style="color:var(--muted);padding:5px 0">Title</td><td>${escapeHtml(seo.seoTitle)}</td></tr>
+          <tr><td style="color:var(--muted);padding:5px 0">Status</td><td><span class="badge-lvl lvl-medium">DRAFT</span> (never auto-published)</td></tr>
+          <tr><td style="color:var(--muted);padding:5px 0">Featured image</td><td>First product image (Shopify CDN)</td></tr>
+          <tr><td style="color:var(--muted);padding:5px 0">Metafields</td><td>seo.title, seo.description</td></tr>
+        </table>
+      </div>
+    </div>
+    <button class="btn btn-dark btn-block" onclick="publishToShopify()">🚀 Publish Draft to Shopify</button>
+    <div class="note">In production this calls <code>POST /admin/api/2024-01/blogs/{id}/articles.json</code> with <code>published:false</code>.</div>
+  `;
+}
+
+/* ============================================================
+   ACTIONS
+   ============================================================ */
+function publishToShopify(){
+  if(!STATE.seo){ toast("Run the pipeline first"); return; }
+  const id = 8000000000 + Math.floor((STATE.seo.seoTitle.length*137+STATE.seo.slug.length*991)%999999);
+  const url = `https://grabnix.myshopify.com/admin/articles/${id}`;
+  STATE.published = url;
+  $("#draftLink").textContent = url;
+  $("#modalBg").classList.add("show");
+}
+function copyText(t, msg){
+  navigator.clipboard.writeText(t).then(()=>toast(msg||"Copied")).catch(()=>toast("Copy failed"));
+}
+let toastTimer;
+function toast(msg){
+  const t=$("#toast"); t.textContent=msg; t.classList.add("show");
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove("show"),2600);
+}
+function switchTab(name){
+  $$(".tab").forEach(t=>t.classList.toggle("active",t.dataset.tab===name));
+  $$(".tab-pane").forEach(p=>p.classList.toggle("active",p.id==="pane-"+name));
+}
+function setModePill(forceLocal){
+  const on = $("#useClaude").checked && !forceLocal;
+  $("#modePill").textContent = on ? "CLAUDE API MODE" : "LOCAL AI MODE";
+  $("#modePill").style.background = on ? "rgba(37,99,235,.25)" : "rgba(13,148,136,.2)";
+}
+
+/* ============================================================
+   EVENT WIRING
+   ============================================================ */
+document.addEventListener("DOMContentLoaded",()=>{
+  renderPipeline();
+
+  // Tabs
+  $("#tabs").addEventListener("click",e=>{ const t=e.target.closest(".tab"); if(t) switchTab(t.dataset.tab); });
+
+  // URL → live preview
+  $("#ytUrl").addEventListener("input",e=>{
+    const vid=extractVideoId(e.target.value.trim());
+    if(vid) embedVideo(vid);
+  });
+  // initial preview
+  const initVid=extractVideoId($("#ytUrl").value.trim()); if(initVid) embedVideo(initVid);
+
+  // Samples
+  $("#loadSample").addEventListener("click",()=>{ $("#transcript").value=SAMPLE_1; toast("Sample loaded — casserole"); });
+  $("#loadSample2").addEventListener("click",()=>{ $("#transcript").value=SAMPLE_2; toast("Sample loaded — Diwali lights"); });
+
+  // Claude toggle
+  $("#useClaude").addEventListener("change",e=>{
+    $("#claudeKeyWrap").style.display = e.target.checked?"block":"none";
+    setModePill();
+  });
+
+  // Run
+  $("#runBtn").addEventListener("click",runPipeline);
+
+  // Modal
+  $("#closeModal").addEventListener("click",()=>$("#modalBg").classList.remove("show"));
+  $("#modalBg").addEventListener("click",e=>{ if(e.target.id==="modalBg") $("#modalBg").classList.remove("show"); });
+
+  // Keyboard: Ctrl/Cmd+Enter to run
+  document.addEventListener("keydown",e=>{ if((e.ctrlKey||e.metaKey)&&e.key==="Enter") runPipeline(); });
+});
+</script>
+</body>
+</html>

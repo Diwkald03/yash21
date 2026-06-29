@@ -1,0 +1,13 @@
+node_modules
+.next
+out
+data
+certificates
+lighthouse
+.git
+.env*.local
+*.tsbuildinfo
+npm-debug.log*
+Dockerfile
+.dockerignore
+README*.md
