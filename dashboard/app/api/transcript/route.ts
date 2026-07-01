@@ -255,7 +255,9 @@ async function viaYtDlp(videoId: string, lang?: string): Promise<YtDlpResult | n
           "--sleep-subtitles", "1", "--no-warnings", "--no-playlist",
           "-o", join(dir, "v.%(ext)s"), url,
         ],
-        { timeout: 90000, maxBuffer: 16 * 1024 * 1024 },
+        // Cap the wait: locally captions download in a few seconds; on a blocked
+        // datacenter IP this fails fast so we fall through to the kome.ai fallback.
+        { timeout: 25000, maxBuffer: 16 * 1024 * 1024 },
       );
     } catch {
       // A later track may 429 after an earlier one succeeded — keep what was written.
@@ -293,6 +295,46 @@ async function viaYtDlp(videoId: string, lang?: string): Promise<YtDlpResult | n
     return { title, available, chosen: null };
   } finally {
     await rm(dir, { recursive: true, force: true }).catch(() => {});
+  }
+}
+
+// ── Keyless transcript API (kome.ai) ─────────────────────────────────────────
+// Fetches the transcript SERVER-SIDE from kome's own infrastructure, so it works
+// even when the host IP is blocked by YouTube (e.g. Render/other datacenters, where
+// yt-dlp + the direct caption endpoints all return nothing). No API key, no signup.
+// It returns the video's native-language transcript (Hindi stays Hindi) as plain text
+// (no timestamps / language-picker), which the analysis step then handles as usual.
+async function fromKome(videoId: string): Promise<string> {
+  try {
+    const res = await fetch("https://kome.ai/api/transcript", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "User-Agent": WEB_UA },
+      body: JSON.stringify({ video_id: videoId, format: true }),
+      cache: "no-store",
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!res.ok) return "";
+    const data = (await res.json()) as { transcript?: string };
+    const raw = data.transcript || "";
+    // drop [Music]/[Applause]-style markers, collapse whitespace
+    return raw.replace(/\[[^\]]{1,24}\]/g, " ").replace(/\s+/g, " ").trim();
+  } catch {
+    return "";
+  }
+}
+
+// Lightweight title lookup (oEmbed) for sources that don't return one.
+async function fetchYtTitle(videoId: string): Promise<string> {
+  try {
+    const r = await fetch(
+      `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`,
+      { cache: "no-store", signal: AbortSignal.timeout(8000) },
+    );
+    if (!r.ok) return "";
+    const j = (await r.json()) as { title?: string };
+    return j.title || "";
+  } catch {
+    return "";
   }
 }
 
@@ -334,6 +376,32 @@ export async function POST(req: NextRequest) {
     }
   } catch {
     /* yt-dlp unavailable or failed — fall back to direct fetch */
+  }
+
+  // 1) Keyless transcript API (kome.ai) — the reliable path when the host IP is
+  //    blocked by YouTube (Render/datacenter), where yt-dlp above returns nothing.
+  //    Runs after yt-dlp so local keeps the richer timestamped experience.
+  try {
+    const komeText = await fromKome(videoId);
+    if (komeText.length > 40) {
+      const hasDev = /[ऀ-ॿ]/.test(komeText);
+      const title = await fetchYtTitle(videoId);
+      const payload = {
+        ok: true,
+        transcript: formatTranscript(fixTerms(komeText)).slice(0, 60000),
+        segments: [] as TSegment[],
+        title,
+        language: lang || (hasDev ? "hi" : "en"),
+        languageName: hasDev ? "Hindi" : "English",
+        available: [] as { code: string; name: string; auto: boolean }[],
+        videoId,
+        engine: "kome",
+      };
+      CACHE.set(cacheKey, { at: Date.now(), payload });
+      return NextResponse.json(payload);
+    }
+  } catch {
+    /* kome unavailable — fall back to direct YouTube fetch */
   }
 
   try {
