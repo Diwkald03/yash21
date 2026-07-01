@@ -1,0 +1,14 @@
+{
+  // The backend/ Flask+FastAPI service is OPTIONAL and is NOT used by the Next.js
+  // dashboard (which is the real, deployed app). No Python interpreter is installed
+  // on this machine, so Pylance can't resolve backend imports like `flask`.
+  // These overrides silence those cosmetic "could not be resolved" warnings.
+  //
+  // To actually RUN the backend later: install Python 3.11+ then, from deodap-yt-blog/:
+  //   python -m venv .venv && .venv\Scripts\pip install -r backend/requirements.txt
+  // and select that interpreter in VS Code (Ctrl+Shift+P -> "Python: Select Interpreter").
+  "python.analysis.diagnosticSeverityOverrides": {
+    "reportMissingImports": "none",
+    "reportMissingModuleSource": "none"
+  }
+}

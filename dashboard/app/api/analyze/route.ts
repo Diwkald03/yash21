@@ -179,7 +179,13 @@ export async function POST(req: NextRequest) {
   let obj: any;
   let engine = "local";
   try {
-    const main = await llmComplete({ system: SYSTEM, user: buildPrompt(transcript), maxTokens: 1500, kind: "analysis" });
+    // Use the stronger model (LLM_BLOG_MODEL, e.g. 70B) for the MAIN analysis so the
+    // topic/keywords/title are accurate. The per-chunk product sweep below stays on the
+    // lighter analysis model so it doesn't hit the provider's per-minute rate limit.
+    const main = await llmComplete({
+      system: SYSTEM, user: buildPrompt(transcript), maxTokens: 1500, kind: "analysis",
+      preferModel: process.env.LLM_BLOG_MODEL || undefined,
+    });
     obj = JSON.parse(stripJson(main.text));
     engine = main.engine;
     obj.collections = (obj.collections || []).map((c: unknown) =>

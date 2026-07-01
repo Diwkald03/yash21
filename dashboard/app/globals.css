@@ -80,9 +80,9 @@ svg { display: block; }
 .step-arrow { color: var(--muted-2); }
 
 .blk { margin-bottom: 18px; }
-.blk-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 7px; }
+.blk-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 7px; flex-wrap: wrap; gap: 8px; }
 .blk-head label { font-size: 13px; font-weight: 600; color: var(--txt-2); }
-.blk-head .actions { display: flex; gap: 8px; align-items: center; }
+.blk-head .actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .detected { color: var(--green); font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 5px; }
 
 .input, .ta { width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 13px 15px; font-size: 15px; font-family: inherit; color: var(--txt); outline: none; transition: .15s; }
@@ -340,4 +340,44 @@ pre.code { background: #0c0d0e; border: 1px solid var(--line); color: #cbd5e1; b
 @media (max-width: 480px) {
   .cw-panel { right: 12px; left: 12px; width: auto; bottom: 84px; height: 72vh; }
   .cw-fab { right: 16px; bottom: 16px; }
+}
+
+/* ── Responsive pass: tablet & phone ──────────────────────────────────────── */
+@media (max-width: 760px) {
+  .app-hdr-in { padding: 12px 15px; gap: 10px; }
+  .hdr-right { gap: 7px; }
+  .drafter { padding: 20px 15px 44px; }
+  .app-ftr-in { padding: 18px 15px; }
+  .rpane { padding: 14px; }
+  .blog { padding: 16px; max-height: none; }        /* let long posts flow on phones */
+  .blog h1 { font-size: 21px; }
+  .blog h2 { font-size: 16.5px; }
+  .draft-banner { flex-wrap: wrap; }
+  .draft-banner a.btn { margin-left: 0 !important; }  /* stop the "Open" button overflowing */
+  .modal { max-height: 92vh; }
+}
+
+@media (max-width: 620px) {
+  /* Header: keep it to one tidy row — drop the DB chip, tighten the brand block. */
+  .chip-status:nth-of-type(3) { display: none; }
+  .hsep { display: none; }
+  .htitle { font-size: 15px; }
+  .steps { gap: 4px; margin-bottom: 18px; }
+  .step { padding: 6px 10px; font-size: 12px; }
+  .draft-cta { font-size: 15px; padding: 14px; }
+  .msg { max-width: 92%; }
+}
+
+@media (max-width: 420px) {
+  body { font-size: 13.5px; }
+  .drafter { padding: 16px 12px 40px; }
+  .dd-badge { padding: 5px 8px; font-size: 11px; }
+  /* action buttons in a block header go full-width so nothing is clipped */
+  .blk-head .actions { width: 100%; }
+  .blk-head .actions > .btn.sm,
+  .blk-head .actions > select.btn.sm { flex: 1 1 auto; justify-content: center; }
+  .fs-h { font-size: 25px; }
+  .auth-formside { padding: 32px 20px; }
+  .rpane { padding: 12px; }
+  .blog { padding: 13px; }
 }

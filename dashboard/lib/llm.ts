@@ -24,13 +24,16 @@ function pickModel(kind: LlmKind, model?: string, analysisModel?: string, blogMo
 }
 
 // Ordered providers to try (primary first, then the fallback).
-function openAiProviders(kind: LlmKind): OAProvider[] {
+// preferModel overrides ONLY the primary provider's model (e.g. use the stronger 70B
+// model for the main analysis to get an accurate topic/title) — the fallback provider
+// keeps its own valid model name so the fallback chain still works.
+function openAiProviders(kind: LlmKind, preferModel?: string): OAProvider[] {
   const E = process.env;
   const out: OAProvider[] = [];
   if (E.LLM_API_KEY && E.LLM_BASE_URL) {
     out.push({
       key: E.LLM_API_KEY, base: E.LLM_BASE_URL,
-      model: pickModel(kind, E.LLM_MODEL, E.LLM_ANALYSIS_MODEL, E.LLM_BLOG_MODEL),
+      model: preferModel || pickModel(kind, E.LLM_MODEL, E.LLM_ANALYSIS_MODEL, E.LLM_BLOG_MODEL),
       name: providerName(E.LLM_BASE_URL),
     });
   }
@@ -99,11 +102,12 @@ export async function llmComplete(opts: {
   user: string;
   maxTokens: number;
   kind: LlmKind;
+  preferModel?: string; // override the primary provider's model for this call
 }): Promise<{ text: string; engine: string }> {
-  const { system, user, maxTokens, kind } = opts;
+  const { system, user, maxTokens, kind, preferModel } = opts;
 
   // 1) OpenAI-compatible chain (primary → fallback)
-  const chain = openAiProviders(kind);
+  const chain = openAiProviders(kind, preferModel);
   let lastErr = "No LLM provider configured";
   for (const p of chain) {
     try {

@@ -228,8 +228,16 @@ function pgPool(): Pool {
     _pool = new Pool({
       connectionString: process.env.DATABASE_URL,
       max: 5,
+      // Fail fast instead of hanging a request forever when the DB is unreachable or
+      // wedged. Without these, a down Postgres makes /api/auth/register (and every other
+      // DB call) hang indefinitely, so the UI never advances past the auth screen.
+      connectionTimeoutMillis: 8000, // give up connecting after 8s
+      idleTimeoutMillis: 30000,
+      statement_timeout: 15000,      // cap any single query at 15s
       ssl: process.env.PGSSL === "true" ? { rejectUnauthorized: false } : undefined,
     });
+    // A pool 'error' on an idle client would otherwise crash the process; log and move on.
+    _pool.on("error", (e) => console.error("pg pool error:", e.message));
   }
   return _pool;
 }
