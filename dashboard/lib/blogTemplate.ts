@@ -20,13 +20,15 @@ export function localBlog(a: Analysis, products: ShopifyProduct[]): { title: str
   const validPrices = products.map((p) => p.price).filter((x) => x > 0);
   const minPrice = validPrices.length ? Math.min(...validPrices) : 0;
 
-  // ── Title: DeoDap-style numbered listicle ──
+  // ── Title: catchy DeoDap-style numbered listicle (not the generic "N Best X in India 2026") ──
+  const priceHook = minPrice ? ` Under ₹${Math.ceil(minPrice / 10) * 10}` : "";
+  const power = ["Must-Have", "Genius", "Clever", "Space-Saving", "Underrated"][n % 5];
   const title =
     a.intent === "transactional"
-      ? `Buy ${kw} Online at Wholesale Prices 2026`
+      ? `Buy ${kw} Online at Wholesale Prices${priceHook} (2026)`
       : n >= 3
-      ? `${n} Best ${kw} in India 2026`
-      : `Best ${kw} in India 2026`;
+      ? `${n} ${power} ${kw}${priceHook} Every Indian Home Needs in 2026`
+      : `${power} ${kw} for Every Indian Home in 2026`;
 
   // ── Intro: problem → solution (~90 words) ──
   const intro =
@@ -50,9 +52,10 @@ export function localBlog(a: Analysis, products: ShopifyProduct[]): { title: str
     .map((p, i) => {
       const num = i + 1;
       const url = p.url || `https://deodap.in/products/${p.handle}`;
+      // Real image on its own line; if none, omit it (no placeholder box).
       const img = p.image_src
         ? `<img class="pimg" src="${esc(p.image_src)}" alt="${esc(p.title)}" loading="lazy">`
-        : `<div class="pimg">${esc(p.title)}</div>`;
+        : "";
       const opening = p.utility
         ? `${esc(cap(p.utility))}.`
         : `A dependable ${esc((p.product_type || "everyday home").toLowerCase())} pick from DeoDap's range.`;
@@ -69,16 +72,13 @@ export function localBlog(a: Analysis, products: ShopifyProduct[]): { title: str
       ]
         .filter(Boolean)
         .join("");
+      // Plain, un-boxed section: heading, image, opening line, bullets, Shop Now link.
       return `
     <h2>${num}. ${esc(p.title)}</h2>
-    <div class="pcard">
-      ${img}
-      <div class="pbody">
-        <p>${opening}</p>
-        <ul class="pmeta">${bullets}</ul>
-        <a class="pbtn" href="${url}">Shop Now →</a>
-      </div>
-    </div>`;
+    ${img}
+    <p>${opening}</p>
+    <ul class="pmeta">${bullets}</ul>
+    <a class="pbtn" href="${url}">Shop Now →</a>`;
     })
     .join("");
 

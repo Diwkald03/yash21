@@ -187,12 +187,19 @@ pre.code { background: #0c0d0e; border: 1px solid var(--line); color: #cbd5e1; b
 .blog dl { margin: 8px 0; } .blog dt { font-weight: 700; margin-top: 11px; color: #1b263b; } .blog dd { margin: 4px 0 0; color: #475569; }
 .blog .pgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; margin-top: 10px; }
 @media (max-width: 600px) { .blog .pgrid { grid-template-columns: 1fr; } }
+/* In-app "Products" tab preview keeps the card grid (uses <div class="pimg"> tiles). */
 .blog .pcard { border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: #fafcfd; display: flex; margin: 10px 0 20px; }
-.blog .pimg { width: 220px; flex-shrink: 0; aspect-ratio: 1/1; object-fit: cover; display: block; background: #eef2f7; }
+.blog .pcard .pimg { width: 220px; flex-shrink: 0; aspect-ratio: 1/1; object-fit: cover; display: block; background: #eef2f7; }
 .blog div.pimg { display: flex; align-items: center; justify-content: center; color: #475569; font-weight: 700; font-size: 14px; text-align: center; padding: 12px; }
 .blog .pbody { padding: 14px 18px; flex: 1; min-width: 0; }
 .blog .pbody h3 { margin: 0 0 6px; } .blog .pbody > p { margin: 0 0 9px; font-size: 13.5px; color: #475569; line-height: 1.5; }
-@media (max-width: 600px) { .blog .pcard { flex-direction: column; } .blog .pimg { width: 100%; aspect-ratio: 4/3; } }
+@media (max-width: 600px) { .blog .pcard { flex-direction: column; } .blog .pcard .pimg { width: 100%; aspect-ratio: 4/3; } }
+
+/* The PUBLISHED BLOG ARTICLE features each product as a plain, UN-BOXED section: the
+   real product <img> sits on its own line, then description + bullets + "Shop Now" flow
+   normally down the page (no card/tile/border). Matches DeoDap's real blog layout. */
+.blog img.pimg { display: block; width: 100%; max-width: 360px; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 10px; margin: 10px 0 12px; background: #eef2f7; }
+@media (max-width: 600px) { .blog img.pimg { max-width: 100%; } }
 .blog .pprice { color: #16a34a; font-weight: 800; }
 .blog ul { margin: 6px 0 12px; padding-left: 20px; color: #334155; font-size: 14px; }
 .blog ul li { margin: 3px 0; }

@@ -22,15 +22,17 @@ VOICE — write like a helpful human friend recommending things they actually li
 - Vary your sentences. Keep paragraphs short and easy to skim. Never cut a sentence off mid-thought.
 
 ARTICLE SHAPE (the exact HTML order is given in the user prompt — follow it; this is the spirit):
-1. TITLE: a numbered listicle headline, e.g. "{N} Best [Category] in India [Year]" or "Top {N} [Category] from
-   DeoDap Under ₹X". Title Case, natural, human — never keyword-stuffed.
+1. TITLE: a CATCHY, UNIQUE numbered listicle headline — NOT the generic "{N} Best [Category] in India 2026"
+   template. Start with the count, add a power word + a real benefit or price hook + 2026, specific to what these
+   products do (e.g. "9 Genius Kitchen Gadgets Under ₹99 That Make Cooking Effortless (2026)"). Human, never keyword-stuffed.
 2. INTRO (~90 words): a problem→solution hook. Name the everyday pain, mention a couple of real use-cases, then
    promise the fix this list delivers. No CTA jammed mid-thought.
-3. EACH PRODUCT is its own NUMBERED section: a numbered product heading ("1. [Product Name] – [short benefit tag]"),
-   then an OPENING SENTENCE stating the product's main job/benefit in plain language (sample voice: "This charming
-   apple-shaped stand does double duty on any desk, holding your phone at a comfortable viewing angle while doubling
-   as a pen and stationery holder."), then 5-7 short feature/benefit bullets mixing real use-cases and features, then
-   a "Shop Now →" link. Keep ONE light price bullet among them. Keep bullets short so every product fits.
+3. EACH PRODUCT is its own NUMBERED section in a SIMPLE, UN-BOXED format (no cards/tiles/boxes): a numbered product
+   heading ("1. [Product Name] – [short benefit tag]"), then the product IMAGE on its own line (only if an image URL
+   is given), then an OPENING SENTENCE stating the product's main job/benefit in plain language (sample voice: "This
+   charming apple-shaped stand does double duty on any desk, holding your phone at a comfortable viewing angle while
+   doubling as a pen and stationery holder."), then 5-7 short feature/benefit bullets mixing real use-cases and
+   features, then a "Shop Now →" link. Keep ONE light price bullet among them. Everything flows normally down the page.
 4. CONCLUSION: a "Final Thoughts"-style wrap-up that ties the picks back to everyday value.
 5. FAQ: genuine, practical buyer questions ("Which one is best for a work desk?", "Does it work with both iPhone
    and Android?", "Which is easiest to clean?") with concise, factual answers. Never about keywords or SEO.
@@ -52,7 +54,8 @@ RULES:
 7. NO transcript-isms ("in this video", "subscribe", "link in description", "as I mentioned"). NO emojis. Avoid tired
    filler idioms ("break the bank", "checks all the boxes", "add a touch of sophistication", "in today's fast-paced world").
 8. SEMANTIC HTML: exactly one <h1>; section headings and the numbered product headings as proper headings; clean,
-   crawlable hierarchy. Follow the exact tags and class names given in the user prompt.
+   crawlable hierarchy. Follow the exact tags in the user prompt. Do NOT wrap products in <div class="pcard">,
+   <div class="pbody">, cards, tiles or any box wrapper — keep the layout plain and flowing.
 9. LENGTH: aim for roughly 1200-1400 words of substance — enough to be genuinely helpful, never padded.
 10. LANGUAGE: write the ENTIRE article — title, all headings, body and FAQ — in clear, natural ENGLISH. The source
     transcript is Hindi/Hinglish; TRANSLATE the ideas to English. NEVER output Hindi/Devanagari script anywhere
@@ -77,7 +80,7 @@ function buildPrompt(a: Analysis, products: ShopifyProduct[]): string {
   return `Transform the auto-generated analysis below into a Shopify blog article.
 Output ONLY valid HTML, in EXACTLY this structure and order:
 
-<h1>[A NUMBERED LISTICLE headline that STARTS WITH THE PRODUCT COUNT (the exact number of products listed below), Title Case, ~50-70 characters. Pattern: "{N} Best [Category] in India 2026" or "Top {N} [Adjective] [Category] from DeoDap Under ₹X". Use the primary keyword as the [Category] and 2026 as the year. Read human, NOT keyword-stuffed. Examples: "7 Best Phone Stands & Mobile Holders in India 2026", "8 Best Lunch Boxes for School & Office in India 2026", "Top 5 Budget Gadgets from DeoDap Under ₹200".]</h1>
+<h1>[A CATCHY, UNIQUE, SEO-FRIENDLY listicle headline — do NOT use the generic "{N} Best [Category] in India 2026" template (that is boring and over-used). START with the product count (the exact number of products listed below), Title Case, ~55-72 characters. Make it specific and click-worthy by combining: the NUMBER + a POWER/EMOTION word (Genius, Clever, Must-Have, Game-Changing, Underrated, Viral, Space-Saving, Time-Saving) + the CONCRETE category + a REAL benefit or a price hook (Under ₹X) + 2026. Weave the primary keyword in naturally. Invent a FRESH title for THESE specific products — never reuse the examples verbatim. STYLE examples (do not copy): "9 Genius Kitchen Gadgets Under ₹99 That Make Cooking Effortless (2026)", "7 Must-Have Mobile Holders Every Indian Desk Needs in 2026", "8 Clever Lunch Boxes That Keep School & Office Meals Fresh — 2026". The title MUST feel unique to what these products actually DO, not a keyword-stuffed clone.]</h1>
 <p>[A warm, conversational PROBLEM→SOLUTION intro of ABOUT 90 words, ONE short paragraph. First NAME THE EVERYDAY PAIN this category solves, then list 2-3 real use-cases / who it is for, then PROMISE THE FIX — that the picks below are practical and budget-friendly. Casual and human (you may open with a light question like "Bored of the same old lunch box?"). CHECK PRICES FIRST: if you mention affordability, say "starting as low as ₹<lowest actual price from the product list>" — never a price ceiling the products break. Do NOT place a CTA box right after this intro.]</p>
 
 <h2>[A SLIM value-proposition heading — a high-intent phrase, e.g. "What Makes a Great [Category]"]</h2>
@@ -88,23 +91,19 @@ Output ONLY valid HTML, in EXACTLY this structure and order:
    <li><strong>Budget-Friendly:</strong> factory-direct prices that suit households and resellers.</li>]
 </ul>
 
-[Output ONE NUMBERED PRODUCT BLOCK below for EVERY product in the PRODUCTS list, IN ORDER — do NOT skip, merge or summarise any product. Number them sequentially starting at 1. Each block is EXACTLY this shape:]
+[Output ONE NUMBERED PRODUCT SECTION below for EVERY product in the PRODUCTS list, IN ORDER — do NOT skip, merge or summarise any product. Number them sequentially starting at 1. IMPORTANT: keep it a SIMPLE, un-boxed section — do NOT wrap products in <div class="pcard">, <div class="pbody">, cards, tiles or any box. Just the heading, image, paragraph, bullets and link flowing normally, EXACTLY this shape:]
 <h2>[N]. [A descriptive product name: the number, then the product's name plus a short benefit tag, e.g. "1. Apple-Shaped Mobile Stand with Pen Holder – 2-in-1 Desk Organizer"]</h2>
-<div class="pcard">
-  [PRODUCT IMAGE — never leave it blank: if an "image:" URL is given for this product, use <img class="pimg" src="THE_EXACT_image_URL" alt="[product name]" loading="lazy"> (copy the URL verbatim); if NO image URL is given, use <div class="pimg">[Product Name]</div> as a labeled placeholder tile.]
-  <div class="pbody">
-    <p>[ONE opening sentence stating this product's PRIMARY function/benefit in plain language, e.g. "This charming apple-shaped stand does double duty on any desk, holding your phone at a comfortable viewing angle while doubling as a pen and stationery holder."]</p>
-    <ul class="pmeta">
-      [5 to 7 SHORT feature/benefit bullets, each starting with a BOLD lead phrase then a concrete use-case or feature — facts only, unique to this product. EXACTLY ONE bullet must be the light price line "<li><strong>Price:</strong> ₹[price]</li>". Keep every bullet to one line. Example shape:
-       <li><strong>Price:</strong> ₹[price]</li>
-       <li><strong>Best for:</strong> [primary use case from best_for].</li>
-       <li><strong>2-in-1 design:</strong> [a concrete feature].</li>
-       <li><strong>Sturdy build:</strong> [a concrete feature].</li>
-       <li><strong>Great gift:</strong> [a use-case].</li>]
-    </ul>
-    <a class="pbtn" href="[the exact url: for this product]">Shop Now →</a>
-  </div>
-</div>
+[PRODUCT IMAGE on its OWN line (only if an image URL is given): <img class="pimg" src="THE_EXACT_image_URL" alt="[product name]" loading="lazy"> — copy the URL verbatim. If NO "image:" URL is given for this product, OMIT the image line entirely (do NOT output a placeholder box).]
+<p>[ONE opening sentence stating this product's PRIMARY function/benefit in plain language, e.g. "This charming apple-shaped stand does double duty on any desk, holding your phone at a comfortable viewing angle while doubling as a pen and stationery holder."]</p>
+<ul>
+  [5 to 7 SHORT feature/benefit bullets, each starting with a BOLD lead phrase then a concrete use-case or feature — facts only, unique to this product. Keep ONE light price line "<li><strong>Price:</strong> ₹[price]</li>". One line each. Example shape:
+   <li><strong>Price:</strong> ₹[price]</li>
+   <li><strong>Best for:</strong> [primary use case from best_for].</li>
+   <li><strong>2-in-1 design:</strong> [a concrete feature].</li>
+   <li><strong>Sturdy build:</strong> [a concrete feature].</li>
+   <li><strong>Great gift:</strong> [a use-case].</li>]
+</ul>
+<a class="pbtn" href="[the exact url for this product]">Shop Now →</a>
 
 <h2>Final Thoughts</h2>
 <p>[A short, friendly closing paragraph linking the picks to the reader's everyday value — no hard sell.]</p>
@@ -134,9 +133,9 @@ ${buildProductsBlock(products)}
 ${a.collections.map((c) => `- ${c.name} (https://deodap.in/collections/${c.handle})`).join("\n")}
 
 REMINDERS:
-- There are EXACTLY ${products.length} products below. The <h1> MUST start with the number ${products.length} (e.g. "${products.length} Best …"). Output a NUMBERED <h2> product block for EVERY one, numbered sequentially from 1 to ${products.length} — do not skip or merge any.
-- If an "image:" URL is given, copy it verbatim into <img src>; if none, use the <div class="pimg">[Name]</div> placeholder.
-- Use the EXACT "url:" for that product's "Shop Now →" button — never invent handles.
+- There are EXACTLY ${products.length} products below. The <h1> MUST START WITH the number ${products.length} and be CATCHY/UNIQUE (not "${products.length} Best …"). Output a NUMBERED <h2> product section for EVERY one, numbered 1 to ${products.length} — do not skip or merge any.
+- Do NOT box products in <div class="pcard">/cards — plain flowing sections only. If an "image:" URL is given, copy it verbatim into <img class="pimg" src>; if none, OMIT the image (no placeholder box).
+- Use the EXACT "url:" for that product's "Shop Now →" link — never invent handles.
 - MANDATORY: the post MUST end with the <h2>Frequently Asked Questions</h2> + <dl><dt><dd> section (5-6 pairs)
   and the final CTA. Keep each product's bullets short (5-7, one line each) so you NEVER run out of room before the FAQ. The FAQ is required for schema.
 - Use the primary keyword in the <h1> and once in the intro; weave secondary keywords in naturally — do not keyword-stuff.
@@ -146,9 +145,33 @@ REMINDERS:
 // A blog is "complete" only if it has the FAQ section AND most of the featured product blocks.
 // A single LLM pass occasionally returns a short/truncated post; we use this to retry / fall back.
 function blogIsComplete(html: string, productCount: number): boolean {
-  const blocks = (html.match(/class=["']?pcard/g) || []).length;
+  // Products are now plain (un-boxed) sections, so count the per-product "Shop Now" CTAs.
+  const blocks = (html.match(/Shop Now/gi) || []).length;
   const hasFaq = /<dt[\s>]/i.test(html);
   return hasFaq && blocks >= Math.min(productCount, 6);
+}
+
+// Embed the FAQ block as a Google-ready FAQPage JSON-LD schema (a <script type="application/ld+json">)
+// at the end of the article, so the published Shopify post ships with FAQ structured data / rich results.
+// Built deterministically from the visible <dl><dt>/<dd> pairs → always valid JSON.
+function withFaqSchema(html: string): string {
+  const dl = html.match(/<dl>([\s\S]*?)<\/dl>/i);
+  if (!dl) return html;
+  const qs = [...dl[1].matchAll(/<dt>([\s\S]*?)<\/dt>/gi)].map((m) => m[1].replace(/<[^>]+>/g, "").trim());
+  const as = [...dl[1].matchAll(/<dd>([\s\S]*?)<\/dd>/gi)].map((m) => m[1].replace(/<[^>]+>/g, "").trim());
+  const pairs: [string, string][] = [];
+  for (let i = 0; i < Math.min(qs.length, as.length); i++) if (qs[i] && as[i]) pairs.push([qs[i], as[i]]);
+  if (!pairs.length) return html;
+  const schema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: pairs.map(([q, a]) => ({
+      "@type": "Question",
+      name: q,
+      acceptedAnswer: { "@type": "Answer", text: a },
+    })),
+  };
+  return `${html}\n<script type="application/ld+json">\n${JSON.stringify(schema, null, 2)}\n</script>`;
 }
 
 export async function POST(req: NextRequest) {
@@ -175,7 +198,7 @@ export async function POST(req: NextRequest) {
   if (activeEngine() === "none") {
     try {
       const r = localBlog(analysis, products || []);
-      return NextResponse.json({ title: r.title, html: r.html, engine: "local" });
+      return NextResponse.json({ title: r.title, html: withFaqSchema(r.html), engine: "local" });
     } catch (err: unknown) {
       return NextResponse.json({ error: "Blog generation failed: " + (err instanceof Error ? err.message : "error") }, { status: 500 });
     }
@@ -204,7 +227,7 @@ export async function POST(req: NextRequest) {
       });
       const html = cleanHtml(text);
       if (blogIsComplete(html, products.length)) {
-        return NextResponse.json({ title: titleOf(html), html, engine });
+        return NextResponse.json({ title: titleOf(html), html: withFaqSchema(html), engine });
       }
       if (!best || html.length > best.html.length) best = { html, engine }; // keep longest partial
     } catch (err: unknown) {
@@ -214,9 +237,9 @@ export async function POST(req: NextRequest) {
 
   try {
     const r = localBlog(analysis, products); // always complete: every product + FAQ
-    return NextResponse.json({ title: r.title, html: r.html, engine: "template", _note: lastError || "LLM post was incomplete; used the built-in template" });
+    return NextResponse.json({ title: r.title, html: withFaqSchema(r.html), engine: "template", _note: lastError || "LLM post was incomplete; used the built-in template" });
   } catch {
-    if (best) return NextResponse.json({ title: titleOf(best.html), html: best.html, engine: best.engine, _note: "partial" });
+    if (best) return NextResponse.json({ title: titleOf(best.html), html: withFaqSchema(best.html), engine: best.engine, _note: "partial" });
     return NextResponse.json({ error: "Blog generation failed: " + (lastError || "unknown") }, { status: 500 });
   }
 }
