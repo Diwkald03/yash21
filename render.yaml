@@ -1,0 +1,77 @@
+# Render Blueprint — one-click deploy of the DeoDap YT→Blog dashboard + Postgres.
+#
+# HOW TO DEPLOY (≈3 clicks):
+#   1. Push this repo to GitHub (already done).
+#   2. Render dashboard → New + → "Blueprint" → connect this repo (Diwkald03/yash21).
+#   3. Render reads this file, provisions the web service AND a Postgres DB, and wires
+#      DATABASE_URL automatically. It will ask you to paste ONE secret: LLM_API_KEY
+#      (your Groq key — the one in dashboard/.env.local). Click "Apply".
+#
+# That's it. First build ~4-6 min (Docker: npm ci + next build + yt-dlp install).
+# Health check hits /api/status; the app is live at the https URL Render assigns.
+
+databases:
+  - name: deodap-db
+    plan: free
+    databaseName: deodap
+    user: deodap
+
+services:
+  - type: web
+    name: deodap-yt-blog
+    runtime: docker
+    plan: free
+    region: oregon
+    # Build the Next.js dashboard (the deployable app) from its own Dockerfile.
+    dockerfilePath: ./dashboard/Dockerfile
+    dockerContext: ./dashboard
+    healthCheckPath: /api/status
+    autoDeploy: true
+    envVars:
+      # Postgres — Render injects the managed DB's URL; the app auto-creates its tables.
+      - key: DATABASE_URL
+        fromDatabase:
+          name: deodap-db
+          property: connectionString
+      - key: PGSSL            # Render Postgres requires TLS
+        value: "true"
+      - key: NODE_ENV
+        value: production
+
+      # Admin data viewer:  https://<app>.onrender.com/admin?key=<ADMIN_KEY>
+      - key: ADMIN_KEY
+        value: deodap-admin-2026
+
+      # LLM provider (Groq, OpenAI-compatible). Only the API KEY is a secret (sync:false →
+      # you paste it once in the Render UI so it never lives in git). The rest are safe config.
+      - key: LLM_BASE_URL
+        value: https://api.groq.com/openai/v1
+      - key: LLM_MODEL
+        value: llama-3.1-8b-instant
+      - key: LLM_ANALYSIS_MODEL
+        value: llama-3.1-8b-instant
+      - key: LLM_BLOG_MODEL
+        value: llama-3.3-70b-versatile
+      - key: LLM_API_KEY
+        sync: false
+
+      # ── Optional (leave unset unless you use them) ──────────────────────────
+      # Second fallback LLM provider:
+      # - key: LLM_API_KEY_2
+      #   sync: false
+      # - key: LLM_BASE_URL_2
+      #   value: https://generativelanguage.googleapis.com/v1beta/openai
+      # - key: LLM_MODEL_2
+      #   value: gemini-2.5-flash-lite
+      # Shopify publish (real blog drafts):
+      # - key: SHOPIFY_STORE_URL
+      #   value: https://grabnix.myshopify.com
+      # - key: SHOPIFY_ADMIN_TOKEN
+      #   sync: false
+      # - key: SHOPIFY_BLOG_ID
+      #   sync: false
+      # Gmail password-reset emails:
+      # - key: GMAIL_USER
+      #   sync: false
+      # - key: GMAIL_APP_PASSWORD
+      #   sync: false

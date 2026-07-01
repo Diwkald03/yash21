@@ -6,6 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "start:https": "node server.mjs",
+    "db": "node scripts/db-server.mjs",
     "lint": "next lint"
   },
   "dependencies": {
@@ -22,6 +24,7 @@
     "@types/pg": "^8.11.6",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
+    "embedded-postgres": "^18.4.0-beta.17",
     "typescript": "^5.5.3"
   }
 }
