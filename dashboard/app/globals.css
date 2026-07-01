@@ -368,14 +368,28 @@ pre.code { background: #0c0d0e; border: 1px solid var(--line); color: #cbd5e1; b
   .msg { max-width: 92%; }
 }
 
+/* Transcript / block-header action rows (Get transcript, language picker, Copy,
+   Clean up, Hide): on phones & small tablets stack the label above the buttons and
+   lay the buttons out 2-per-row so nothing overflows the screen edge. */
+@media (max-width: 600px) {
+  .blk-head { flex-direction: column; align-items: stretch; }
+  .blk-head > label { margin-bottom: 4px; }
+  .blk-head .actions { width: 100%; }
+  .blk-head .actions > .btn.sm,
+  .blk-head .actions > select.btn.sm {
+    flex: 1 1 calc(50% - 4px);
+    min-width: 0;
+    justify-content: center;
+    white-space: nowrap;
+  }
+  /* safety net: never let a wide child force a horizontal scrollbar on mobile */
+  .drafter, .blk { max-width: 100%; overflow-x: hidden; }
+}
+
 @media (max-width: 420px) {
   body { font-size: 13.5px; }
   .drafter { padding: 16px 12px 40px; }
   .dd-badge { padding: 5px 8px; font-size: 11px; }
-  /* action buttons in a block header go full-width so nothing is clipped */
-  .blk-head .actions { width: 100%; }
-  .blk-head .actions > .btn.sm,
-  .blk-head .actions > select.btn.sm { flex: 1 1 auto; justify-content: center; }
   .fs-h { font-size: 25px; }
   .auth-formside { padding: 32px 20px; }
   .rpane { padding: 12px; }
