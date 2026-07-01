@@ -20,9 +20,9 @@ const FEATURES = [
 ];
 
 export function AuthScreen({ onAuthed }: { onAuthed: (u: SafeUser) => void }) {
-  const [mode, setMode] = useState<Mode>("login");
+  const [mode, setMode] = useState<Mode>("register");
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState("nayan.patel@gmail.com");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
   const [keep, setKeep] = useState(true);
