@@ -144,6 +144,38 @@ REMINDERS:
 
 // A blog is "complete" only if it has the FAQ section AND most of the featured product blocks.
 // A single LLM pass occasionally returns a short/truncated post; we use this to retry / fall back.
+// Keep only products that genuinely fit the blog's TOPIC. The source video is often a
+// multi-category store showcase, so the raw list mixes in off-topic products; this drops
+// the mismatches so the blog is coherent (relevant products only). LLM-based (understands
+// that "Vegetable Chopper" fits a kitchen blog but "Shipping Labels" doesn't); on any
+// failure it keeps the full list, and it never over-filters below a few products.
+async function filterRelevantProducts(products: ShopifyProduct[], analysis: Analysis): Promise<ShopifyProduct[]> {
+  if (products.length <= 3 || activeEngine() === "none") return products;
+  const topic = `${analysis.primary_keyword}${analysis.topic ? " — " + analysis.topic : ""}`;
+  const list = products.map((p, i) => `${i + 1}. ${p.title}${p.product_type ? ` (${p.product_type})` : ""}`).join("\n");
+  try {
+    const { text } = await llmComplete({
+      system:
+        "You curate products for a FOCUSED, single-category shopping-guide blog. Keep ONLY products that belong to the blog's topic/category. DROP anything from a clearly different category — e.g. for a kitchen blog, drop automotive, shipping/packaging labels, stationery, mobile/electronics, beauty, toys, etc. When unsure whether a product's category matches the topic, DROP it. Better a tight, coherent list than an off-topic one.",
+      user: `Blog topic/category: ${topic}\n\nProducts:\n${list}\n\nReturn ONLY a JSON array of the NUMBERS of the products that clearly belong to THIS topic/category (drop everything from a different category). Example: [1,2,4,5].`,
+      maxTokens: 300,
+      kind: "analysis",
+      preferModel: process.env.LLM_BLOG_MODEL || undefined, // stronger model = better category judgement
+    });
+    const m = text.match(/\[[\s\S]*?\]/);
+    if (!m) return products;
+    const keepIdx = (JSON.parse(m[0]) as unknown[])
+      .map((n) => Number(n))
+      .filter((n) => Number.isInteger(n) && n >= 1 && n <= products.length)
+      .map((n) => n - 1);
+    const filtered = Array.from(new Set(keepIdx)).map((i) => products[i]).filter(Boolean);
+    // Never over-filter: if it stripped it down too far, keep the original list.
+    return filtered.length >= Math.min(4, products.length) ? filtered : products;
+  } catch {
+    return products;
+  }
+}
+
 function blogIsComplete(html: string, productCount: number): boolean {
   // Products are now plain (un-boxed) sections, so count the per-product "Shop Now" CTAs.
   const blocks = (html.match(/Shop Now/gi) || []).length;
@@ -188,12 +220,14 @@ export async function POST(req: NextRequest) {
 
   // Feature a CURATED set in the blog. Real DeoDap videos have 30-40 products; emitting all of
   // them overflows the output-token budget and truncates the end of the post (FAQ + closing get
-  // cut off). Prioritise products MATCHED on the store (real image, link, rating) so every featured
-  // card is rich, then keep 12 — the FULL structure stays intact. The Products tab still lists all.
+  // cut off). Prioritise products MATCHED on the store (real image, link, rating), then DROP any
+  // that don't fit the blog's topic (multi-category showcase videos mix in off-topic items), then
+  // keep 12 — the FULL structure stays intact. The Products tab still lists all.
   products = (products || [])
     .slice()
-    .sort((a, b) => (b.matched ? 1 : 0) - (a.matched ? 1 : 0))
-    .slice(0, 12);
+    .sort((a, b) => (b.matched ? 1 : 0) - (a.matched ? 1 : 0));
+  products = await filterRelevantProducts(products, analysis);
+  products = products.slice(0, 12);
 
   if (activeEngine() === "none") {
     try {

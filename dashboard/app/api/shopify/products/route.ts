@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { shopifyConfigured, searchProducts, searchCollections, type SfProduct, type SfCollection } from "@/lib/shopify";
-import { searchStorefront, enrichCatalog } from "@/lib/storefront";
+import { searchStorefront, enrichCatalog, relevantStoreProducts } from "@/lib/storefront";
 import { mockShopify } from "@/lib/localAnalyze";
 import type { Analysis } from "@/lib/types";
 
@@ -54,6 +54,13 @@ export async function POST(req: NextRequest) {
   try {
     const products = await enrichCatalog(analysis);
     if (products.length) {
+      // Add topic-relevant IN-STOCK store products the video didn't show (fills gaps of
+      // "relevant products missing"). The generate step relevance-filters the merged list.
+      try {
+        const extra = await relevantStoreProducts(analysis.primary_keyword, 8);
+        const have = new Set(products.map((p) => p.handle));
+        for (const e of extra) if (e.handle && !have.has(e.handle)) { have.add(e.handle); products.push(e); }
+      } catch { /* supplement is best-effort */ }
       let collections = analysis.collections || [];
       // Only do the extra storefront search when the analysis gave us no collections —
       // avoids re-running product suggests that enrichCatalog already covered (saves ~2-5s).

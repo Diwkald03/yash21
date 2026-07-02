@@ -312,6 +312,37 @@ async function enrichOne(c: VideoProduct, primaryKeyword = ""): Promise<ShopifyP
   }
 }
 
+// Topic-relevant, IN-STOCK store products for the blog's primary keyword — used to
+// SUPPLEMENT the video list so relevant products the video didn't show can be added.
+// (The generate step then relevance-filters the merged list to the blog topic.)
+export async function relevantStoreProducts(keyword: string, limit = 8): Promise<ShopifyProduct[]> {
+  if (!keyword) return [];
+  try {
+    const cands = normProducts(
+      ((await suggest(keyword, "product", limit)) as { resources?: { results?: { products?: Record<string, unknown>[] } } })?.resources?.results?.products || [],
+    );
+    const out: ShopifyProduct[] = [];
+    for (const c of cands) {
+      if (!c.available || !c.handle) continue; // only in-stock, buyable products
+      const storePrice = c.price ? Math.round(parseFloat(c.price)) : 0;
+      out.push({
+        title: cleanName(c.title),
+        handle: c.handle,
+        url: `${STORE}/products/${c.handle}`,
+        price: storePrice,
+        storePrice: storePrice || undefined,
+        image_src: c.image_src,
+        product_type: c.product_type,
+        matched: true,
+        available: true,
+      });
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
 // Enrich the WHOLE video product list (no cap). Falls back to flat product names
 // if the analysis has no detailed catalog.
 export async function enrichCatalog(analysis: Analysis): Promise<ShopifyProduct[]> {
