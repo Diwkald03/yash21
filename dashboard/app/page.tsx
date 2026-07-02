@@ -325,12 +325,19 @@ export default function Home() {
           </div>
           <input className="input" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://youtu.be/..." />
           {videoId && (
-            <div className="video-frame">
-              <iframe key={seekT ?? -1}
-                src={`https://www.youtube.com/embed/${videoId}?rel=0${seekT != null ? `&start=${seekT}&autoplay=1` : ""}`}
-                title="preview" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen loading="lazy" />
-            </div>
+            <>
+              <div className="video-frame">
+                <iframe key={seekT ?? -1}
+                  src={`https://www.youtube-nocookie.com/embed/${videoId}?rel=0${seekT != null ? `&start=${seekT}&autoplay=1` : ""}`}
+                  title="preview" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen loading="lazy" />
+              </div>
+              <div style={{ marginTop: 6, fontSize: 12, color: "var(--muted)" }}>
+                Preview not playing (YouTube may block embedding for some videos)?{" "}
+                <a href={`https://www.youtube.com/watch?v=${videoId}`} target="_blank" rel="noreferrer" style={{ fontWeight: 600 }}>Watch on YouTube ↗</a>{" "}
+                — this doesn&apos;t affect the transcript or blog.
+              </div>
+            </>
           )}
         </div>
 
