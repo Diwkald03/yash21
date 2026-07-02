@@ -166,9 +166,11 @@ async function fetchRating(handle: string): Promise<{ rating?: number; reviewCou
   return v;
 }
 
-function bestProductMatch(items: Record<string, unknown>[]): {
-  title: string; handle: string; price: string; image_src: string; product_type: string;
-} | null {
+interface Cand { title: string; handle: string; price: string; image_src: string; product_type: string; available: boolean }
+
+// Normalize deodap.in suggest results, capturing in-stock status (`available`).
+function normProducts(items: Record<string, unknown>[]): Cand[] {
+  const out: Cand[] = [];
   for (const p of items) {
     const handle = (p.handle as string) || handleFrom(p.url as string, "products");
     if (!handle) continue;
@@ -177,15 +179,49 @@ function bestProductMatch(items: Record<string, unknown>[]): {
       (p.featured_image as { url?: string })?.url ||
       (typeof p.featured_image === "string" ? p.featured_image : "") ||
       (Array.isArray(p.images) ? (p.images[0] as string) : "") || "";
-    return {
+    out.push({
       title: (p.title as string) || handle,
       handle,
       price: num(p.price),
       image_src: typeof img === "string" ? img : ((img as { url?: string })?.url || ""),
       product_type: (p.type as string) || (p.product_type as string) || "",
-    };
+      available: p.available !== false, // suggest returns available:true/false; default true if absent
+    });
   }
-  return null;
+  return out;
+}
+
+// Token overlap so we pick the product that ACTUALLY matches the video product name (accuracy),
+// not just the first suggestion. Ignores boilerplate words and the store's " – SEO suffix".
+const STOP = new Set(["the", "a", "an", "and", "or", "for", "with", "of", "in", "to", "set", "pack", "pcs", "pc", "piece", "new", "best", "2026", "cm", "ml"]);
+function tokenize(s: string): string[] {
+  return cleanName(String(s || "")).toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter((w) => w.length >= 3 && !STOP.has(w));
+}
+function overlap(query: string, title: string): number {
+  const q = tokenize(query);
+  if (!q.length) return 0;
+  const t = new Set(tokenize(title));
+  let hit = 0;
+  for (const w of q) if (t.has(w)) hit++;
+  return hit / q.length; // fraction of the video-name's words present in the store title
+}
+// The core category noun of a product name (its longest meaningful word), used to find a
+// RELEVANT substitute — e.g. "Rocket Blender Xyz9000" → "blender", "Apple Phone Stand" → "stand".
+function mainNoun(name: string): string {
+  const toks = tokenize(name);
+  return toks.length ? toks.reduce((a, b) => (b.length > a.length ? b : a)) : "";
+}
+// Highest-scoring candidate for `query`. Availability adds a bonus; requireAvailable skips
+// out-of-stock candidates entirely (used to pick an in-stock substitute).
+function pickBest(cands: Cand[], query: string, requireAvailable = false): (Cand & { raw: number }) | null {
+  let best: (Cand & { raw: number; score: number }) | null = null;
+  for (const c of cands) {
+    if (requireAvailable && !c.available) continue;
+    const raw = overlap(query, c.title);
+    const score = raw + (c.available ? 0.12 : 0);
+    if (!best || score > best.score) best = { ...c, raw, score };
+  }
+  return best;
 }
 
 // Drop leading descriptors → core noun phrase (last ~3 words) for a 2nd-chance store match.
@@ -204,32 +240,26 @@ function cleanName(t: string): string {
     .trim();
 }
 
-async function enrichOne(c: VideoProduct): Promise<ShopifyProduct> {
+const GOOD_MATCH = 0.34; // min name-overlap to treat a store product as the SAME product as the video's
+
+async function enrichOne(c: VideoProduct, primaryKeyword = ""): Promise<ShopifyProduct> {
   const txPrice = c.price ? Math.round(parseFloat(c.price)) || 0 : 0;
   const fallback: ShopifyProduct = {
     title: cleanName(c.name), handle: c.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""), price: txPrice,
-    url: `${STORE}/search?q=${encodeURIComponent(c.name)}`, // store-search link when no exact match
-    utility: c.utility, description: c.utility, matched: false,
+    url: `${STORE}/search?q=${encodeURIComponent(c.name)}`, // store-search link when nothing relevant exists
+    utility: c.utility, description: c.utility, matched: false, available: false,
   };
-  try {
-    const pick = async (q: string) =>
-      bestProductMatch(
-        ((await suggest(q, "product", 4)) as { resources?: { results?: { products?: Record<string, unknown>[] } } })?.resources?.results?.products || [],
-      );
-    let top = await pick(c.name);
-    if (!top) {
-      // 2nd chance: search the core noun phrase (drop leading descriptors) so fewer products end up unmatched.
-      const core = coreQuery(c.name);
-      if (core.toLowerCase() !== c.name.toLowerCase()) top = await pick(core);
-    }
-    if (!top) return fallback;
+
+  // Build the ShopifyProduct from a chosen store candidate. The REAL current store price is
+  // authoritative (accurate/precise); the video's spoken price is only a fallback.
+  const build = async (top: Cand, substitute: boolean): Promise<ShopifyProduct> => {
     const rating = await fetchRating(top.handle);
     const storePrice = top.price ? Math.round(parseFloat(top.price)) : 0;
     return {
       title: cleanName(top.title),
       handle: top.handle,
       url: `${STORE}/products/${top.handle}`,
-      price: txPrice || storePrice, // video price is authoritative; store price is a fallback
+      price: storePrice || txPrice,
       storePrice: storePrice || undefined,
       image_src: top.image_src,
       product_type: top.product_type,
@@ -238,7 +268,45 @@ async function enrichOne(c: VideoProduct): Promise<ShopifyProduct> {
       rating: rating.rating,
       reviewCount: rating.reviewCount,
       matched: true,
+      available: top.available,
+      substitute,
     };
+  };
+
+  try {
+    const fetchCands = async (q: string): Promise<Cand[]> =>
+      normProducts(
+        ((await suggest(q, "product", 5)) as { resources?: { results?: { products?: Record<string, unknown>[] } } })?.resources?.results?.products || [],
+      );
+
+    const nameCands = await fetchCands(c.name);
+    const direct = pickBest(nameCands, c.name);
+
+    // 1) Accurate exact match that is IN STOCK → use it (real price, no substitution).
+    if (direct && direct.raw >= GOOD_MATCH && direct.available) {
+      return build(direct, false);
+    }
+
+    // 2) Exact product missing OR out of stock → find the CLOSEST RELEVANT IN-STOCK product.
+    //    Broaden the search to the core noun phrase and the video's primary keyword/category.
+    const pool = new Map<string, Cand>();
+    for (const c2 of nameCands) pool.set(c2.handle, c2);
+    const broaden = [coreQuery(c.name), mainNoun(c.name), primaryKeyword]
+      .filter((v, i, a) => v && a.indexOf(v) === i && v.toLowerCase() !== c.name.toLowerCase());
+    for (const q of broaden) for (const c2 of await fetchCands(q)) if (!pool.has(c2.handle)) pool.set(c2.handle, c2);
+
+    // Only accept a substitute that is genuinely RELEVANT (shares the category/noun with the video
+    // product) — never link an unrelated product just because it happens to be in stock.
+    const SUB_MIN = 0.25;
+    const sub = pickBest([...pool.values()], c.name, /* requireAvailable */ true);
+    if (sub && sub.available && sub.raw >= SUB_MIN) {
+      const sameAsDirect = direct && sub.handle === direct.handle;
+      return build(sub, /* substitute */ !sameAsDirect);
+    }
+
+    // 3) A relevant product exists but nothing is in stock → still link the real product.
+    if (direct && direct.raw >= GOOD_MATCH) return build(direct, false);
+    return fallback;
   } catch {
     return fallback;
   }
@@ -250,7 +318,8 @@ export async function enrichCatalog(analysis: Analysis): Promise<ShopifyProduct[
   const catalog: VideoProduct[] =
     analysis.catalog?.length ? analysis.catalog : (analysis.products || []).map((n) => ({ name: n }));
   if (!catalog.length) return [];
-  const enriched = await mapLimit(catalog.slice(0, 40), 15, enrichOne);
+  const kw = analysis.primary_keyword || "";
+  const enriched = await mapLimit(catalog.slice(0, 40), 15, (c) => enrichOne(c, kw));
   // Dedupe: two video-product names can resolve to the SAME store product — keep one.
   const seen = new Set<string>();
   const out: ShopifyProduct[] = [];

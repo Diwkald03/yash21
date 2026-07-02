@@ -41,6 +41,8 @@ export interface ShopifyProduct {
   reviewCount?: number;   // number of reviews
   storePrice?: number;    // current deodap.in price (may differ from the video price)
   matched?: boolean;      // true if found on deodap.in (false = transcript-only)
+  available?: boolean;    // in stock on deodap.in
+  substitute?: boolean;   // true = the exact video product wasn't in stock; this is the closest relevant in-stock pick
 }
 
 export interface SeoPack {

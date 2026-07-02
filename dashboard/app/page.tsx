@@ -533,7 +533,7 @@ function Results({
               <div className="blog" style={{ background: "transparent", padding: 0, border: 0 }}>
                 <div className="pgrid">
                   {result.shopify.map((p, i) => {
-                    const pr = p as unknown as { title: string; handle: string; price: number; image_src?: string; image_color?: string; product_type?: string; url?: string; utility?: string; description?: string; rating?: number; reviewCount?: number; storePrice?: number; matched?: boolean };
+                    const pr = p as unknown as { title: string; handle: string; price: number; image_src?: string; image_color?: string; product_type?: string; url?: string; utility?: string; description?: string; rating?: number; reviewCount?: number; storePrice?: number; matched?: boolean; substitute?: boolean; available?: boolean };
                     const img = pr.image_src;
                     const color = pr.image_color || "#0d9488";
                     const link = pr.url || (pr.handle ? `https://deodap.in/products/${pr.handle}` : `https://deodap.in/search?q=${encodeURIComponent(pr.title)}`);
@@ -556,6 +556,8 @@ function Results({
                           )}
                           <p style={{ color: "#475569", fontSize: 12.5, margin: "4px 0 8px", lineHeight: 1.5, minHeight: 36 }}>{desc}</p>
                           {pr.matched === false && <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 6 }}>From the video — not matched on store</div>}
+                          {pr.substitute && <div style={{ fontSize: 11, color: "#0d9488", fontWeight: 600, marginBottom: 6 }}>Closest in-stock match on DeoDap</div>}
+                          {pr.matched && pr.available === false && !pr.substitute && <div style={{ fontSize: 11, color: "#b45309", fontWeight: 600, marginBottom: 6 }}>Currently out of stock</div>}
                           <a className="pbtn" href={link} target="_blank" rel="noreferrer">View product</a>
                         </div>
                       </div>
